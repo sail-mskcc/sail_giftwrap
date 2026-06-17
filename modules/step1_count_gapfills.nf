@@ -17,10 +17,10 @@
 process COUNT_GAPFILLS {
 
     input:
-    tuple val(sample_id), path(r1_fastq), path(r2_fastq), val(barcode), path(probes), val(wta)
+    tuple val(sample_id), path(r1_fastq), path(r2_fastq), val(barcode), path(probes), path(wta)
 
     output:
-    tuple val(sample_id), val(wta), path("${sample_id}")
+    tuple val(sample_id), path(wta), path("${sample_id}")
 
     script:
     def bc_arg  = barcode ? "-b '${barcode}'" : ""

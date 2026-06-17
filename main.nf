@@ -4,8 +4,9 @@ nextflow.enable.dsl=2
  * GIFTwrap Nextflow Pipeline
  *
  * Cutadapt always runs to demultiplex each sample from the multiplexed FASTQ
- * by its Flex barcode. The fastq_dir must contain exactly one R1 and one R2
- * file (matched by *_R1_*.fastq.gz / *_R2_*.fastq.gz patterns).
+ * by its Flex barcode. The fastq_dir may contain one or more lane files matched
+ * by *_R1_*.fastq.gz / *_R2_*.fastq.gz; multi-lane inputs are merged via
+ * collectFile() before cutadapt runs (lanes sorted alphabetically).
  *
  * Samplesheet format (CSV with header row):
  *   sample,barcode,probes,wta
@@ -21,7 +22,6 @@ nextflow.enable.dsl=2
  * Add -profile slurm (single dash) to submit each task as a SLURM job.
  * All samples run in parallel; each publishes to: <output>/<sample>/outputs/
  */
-
 include { CUTADAPT_PREPROCESS } from './modules/cutadapt_preprocess'
 include { COUNT_GAPFILLS      } from './modules/step1_count_gapfills'
 include { CORRECT_UMIS        } from './modules/step2_correct_umis'
@@ -50,9 +50,13 @@ workflow {
     if (!params.samplesheet) error "Please provide --samplesheet <path/to/samplesheet.csv>"
     if (!params.fastq_dir)   error "Please provide --fastq_dir <dir>"
 
-    // Find the single R1 and R2 file from fastq_dir.
-    r1_ch = Channel.fromPath("${params.fastq_dir}/*_R1_*.fastq.gz").first()
-    r2_ch = Channel.fromPath("${params.fastq_dir}/*_R2_*.fastq.gz").first()
+    // Collect all lane files and merge into one R1 and one R2.
+    // collectFile() concatenates file contents; sort: true keeps lane order
+    // consistent between R1 and R2. Works for single-lane inputs too.
+    r1_ch = Channel.fromPath("${params.fastq_dir}/*_R1_*.fastq.gz")
+        .collectFile(name: 'merged_R1.fastq.gz', sort: true)
+    r2_ch = Channel.fromPath("${params.fastq_dir}/*_R2_*.fastq.gz")
+        .collectFile(name: 'merged_R2.fastq.gz', sort: true)
 
     // Parse samplesheet into [sample_id, barcode, probes_file, wta]
     samples_ch = Channel
@@ -63,7 +67,8 @@ workflow {
             if (!barcode) error "Samplesheet must include a 'barcode' column for sample '${row.sample}'"
             def probePath = row.probes?.trim()
             if (!probePath) error "Missing probes path for sample '${row.sample}'"
-            def wta = row.wta?.trim() ?: ""
+            def wtaPath = row.wta?.trim() ?: ""
+            def wta = wtaPath ? file(wtaPath) : []
             tuple(row.sample, barcode, file(probePath), wta)
         }
 

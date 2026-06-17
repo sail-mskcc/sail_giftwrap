@@ -16,7 +16,7 @@ process SUMMARIZE_COUNTS {
     }
 
     input:
-    tuple val(sample_id), val(wta), path(output_dir)
+    tuple val(sample_id), path(wta), path(output_dir)
 
     output:
     path(output_dir)
@@ -29,6 +29,7 @@ process SUMMARIZE_COUNTS {
         --output            '${output_dir}' \\
         --overwrite \\
         --reads_per_gapfill ${params.reads_per_gapfill} \\
+        --sample_id         '${sample_id}' \\
         ${wta_arg} \\
         ${flatten_flag}
     """

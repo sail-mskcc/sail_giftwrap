@@ -1706,8 +1706,9 @@ def filter_h5_file_by_barcodes(input_file: Path, output_file: Path, barcodes_lis
         barcode_indices = np.where(mask)[0]
 
         # Check if we need to filter the data
-        if len(barcode_indices) == len(barcodes):
-            return  # Equal size, no point in filtering
+        needs_padding = pad_matrix and len(barcodes_set) > len(barcode_indices)
+        if len(barcode_indices) == len(barcodes) and not needs_padding:
+            return  # Equal size and no padding needed, no point in filtering
 
         if len(barcode_indices) == 0:
             raise ValueError("No barcodes found in the file.")

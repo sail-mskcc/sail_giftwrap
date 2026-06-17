@@ -232,6 +232,12 @@ def run(output: str, cores: int, overwrite: bool, was_multiplexed: bool, flatten
     print("Done.")
 
     plexes = barcodes_df.plex_id.unique().tolist()
+    if not plexes:
+        raise ValueError(
+            f"No cell barcodes found in {output}/barcodes.tsv — "
+            "step1 (COUNT_GAPFILLS) produced an empty barcodes file for this sample. "
+            "Check that the input FASTQ files and samplesheet entries match."
+        )
     multiplex = len(plexes) > 1
 
     if multiplex:
