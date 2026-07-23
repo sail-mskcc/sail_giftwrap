@@ -25,6 +25,7 @@ from .utils import (
     read_wta,
     sequence_saturation_curve,
     sequencing_saturation,
+    write_gapfill_h5ad,
 )
 
 
@@ -308,11 +309,21 @@ def make_pdf_report(output_file, gapfill_adata, adata, probe_reads, filter_cutof
             fig, axs = plt.subplots(2, 1, figsize=(8, 12))
             fig.set_dpi(300)
             fig.suptitle("Gapfill vs WTA")
-            # Compute spearman's rank correlation for single cells
+            # Compute spearman's rank correlation for single cells (on the full data)
             sc_corr_results = spearmanr(gapfill_expression.flatten(), wta_expression.flatten())
-            # Plot a density plot of the correlation
-            axs[0].scatter(gapfill_expression.flatten(), wta_expression.flatten())
-                           # c=density(gapfill_expression.flatten(), wta_expression.flatten()), zorder=2)
+            # Plot a density plot of the correlation. The single-cell scatter has
+            # n_cells x n_probes points (millions); drawing all of them as vector
+            # paths bloats the PDF to hundreds of MB (ENOSPC) and the all-zero
+            # (0,0) pairs are uninformative anyway. Drop zeros, cap to 50k, and
+            # rasterize so the page stays small regardless of cell count.
+            _sx = gapfill_expression.flatten()
+            _sy = wta_expression.flatten()
+            _nz = (_sx > 0) | (_sy > 0)
+            _sx, _sy = _sx[_nz], _sy[_nz]
+            if _sx.size > 50_000:
+                _sel = np.random.default_rng(42).choice(_sx.size, 50_000, replace=False)
+                _sx, _sy = _sx[_sel], _sy[_sel]
+            axs[0].scatter(_sx, _sy, rasterized=True)
             # Add a line of best fit
             axs[0].plot(np.unique(gapfill_expression.flatten()), best_fit(gapfill_expression.flatten(), wta_expression.flatten()),
                         zorder=1, linestyle='--', color='k')
@@ -346,7 +357,7 @@ def make_pdf_report(output_file, gapfill_adata, adata, probe_reads, filter_cutof
             plt.close(fig)
 
 
-def summarize_counts(input: Path, summary_output: Path, summary_pdf_output: Path, summary_html_output: Path, counts_output: Path, flattened_counts_output: Path, cellranger_output: Optional[Path], flatten: bool, reads_per_gapfill: int, probe_bc: str, sample_id: Optional[str] = None):
+def summarize_counts(input: Path, summary_output: Path, summary_pdf_output: Path, summary_html_output: Path, counts_output: Path, flattened_counts_output: Path, h5ad_output: Path, cellranger_output: Optional[Path], flatten: bool, reads_per_gapfill: int, probe_bc: str, sample_id: Optional[str] = None, ilab: Optional[str] = None):
     print("Summarizing counts file ", input, " to ", summary_output, ", ", summary_pdf_output, ", and ", counts_output, " (This will take awhile)...")
 
     # Read cellranger to an anndata file if provided
@@ -396,10 +407,16 @@ def summarize_counts(input: Path, summary_output: Path, summary_pdf_output: Path
                     if cr_filtered:
                         line_passes = line.split("\t")[0] in barcodes or first
                     if pcr_dup_filtered:
-                        line_passes = line_passes and int(line.split("\t")[5]) > reads_per_gapfill or first  # Filter by N pcr duplicates
+                        line_passes = line_passes and int(line.split("\t")[7]) > reads_per_gapfill or first  # Filter by N pcr duplicates (pcr_duplicates is col 7 in the flat schema)
                     if line_passes:
                         f_out.write(line)
                         first = False
+
+    # Write the finalized (post-filter) matrix as a standard .h5ad — the analysis-ready,
+    # scanpy-native deliverable so collaborators don't have to parse the custom h5 layout.
+    print(f"Writing AnnData to {h5ad_output}...", end="")
+    write_gapfill_h5ad(gapfill_adata, h5ad_output)
+    print("Done.")
 
     # Compute umi statistics
     stats = dict(
@@ -459,10 +476,12 @@ def summarize_counts(input: Path, summary_output: Path, summary_pdf_output: Path
         probe_reads_path=input.parent / "probe_reads.tsv.gz",
         filter_cutoff=reads_per_gapfill,
         sample_id=sample_id,
+        ilab=ilab,
+        plex_id=probe_bc,
     )
 
 
-def run(output, overwrite, cellranger_output, flatten, reads_per_gapfill, sample_id=None):
+def run(output, overwrite, cellranger_output, flatten, reads_per_gapfill, sample_id=None, ilab=None):
     if isinstance(cellranger_output, str):
         cellranger_output = [cellranger_output]
     has_cellranger = cellranger_output is not None and len(cellranger_output) > 0
@@ -488,6 +507,13 @@ def run(output, overwrite, cellranger_output, flatten, reads_per_gapfill, sample
     if has_cellranger and len(counts_files) != len(cellranger_output):
         print("WARNING: Number of CellRanger outputs does not match the number of counts files. This can lead to unexpected results.")
 
+    # Report basename: prefer iLab + library when supplied (e.g. IL-1234_CLL02),
+    # falling back to whatever is available and finally to the plex-based name.
+    # The plex number is retained as a suffix only for multiplexed runs so the
+    # per-plex summary files don't collide.
+    report_label = "_".join(p for p in (ilab, sample_id) if p)
+    multiplex = len(counts_files) > 1
+
     for i, counts_file in enumerate(counts_files):
         if has_cellranger and i < len(cellranger_output):
             counts_cellranger = cellranger_output[i]
@@ -495,12 +521,20 @@ def run(output, overwrite, cellranger_output, flatten, reads_per_gapfill, sample
         else:
             counts_cellranger = None
 
-        summary_output_file = output / counts_file.name.replace(".h5", ".summary.tsv")
-        summary_pdf_output_file = output / counts_file.name.replace(".h5", ".summary.pdf")
-        summary_html_output_file = output / counts_file.name.replace(".h5", ".summary.html")
+        probe_bc = counts_file.name.split(".")[1]
+        if report_label:
+            report_base = f"{report_label}.{probe_bc}" if multiplex else report_label
+        else:
+            report_base = f"counts.{probe_bc}"
+
+        summary_output_file = output / f"{report_base}.summary.tsv"
+        summary_pdf_output_file = output / f"{report_base}.summary.pdf"
+        summary_html_output_file = output / f"{report_base}.summary.html"
+        # Analysis-ready, scanpy-native deliverable for collaborators.
+        h5ad_output_file = output / f"{report_base}.h5ad"
+        # Data outputs keep the counts-based name so downstream consumers are unaffected.
         h5_output_file = output / counts_file.name.replace(".h5", ".filtered.h5")
         flattened_output_file = output / counts_file.name.replace(".h5", ".filtered.tsv.gz").replace('counts.', 'flat_counts.')
-        probe_bc = counts_file.name.split(".")[1]
 
         if summary_output_file.exists() or h5_output_file.exists():
             if overwrite:
@@ -509,7 +543,7 @@ def run(output, overwrite, cellranger_output, flatten, reads_per_gapfill, sample
                 print("Skipping existing files. Use --overwrite to overwrite.")
                 continue
 
-        summarize_counts(counts_file, summary_output_file, summary_pdf_output_file, summary_html_output_file, h5_output_file, flattened_output_file, counts_cellranger, flatten, reads_per_gapfill, probe_bc, sample_id=sample_id)
+        summarize_counts(counts_file, summary_output_file, summary_pdf_output_file, summary_html_output_file, h5_output_file, flattened_output_file, h5ad_output_file, counts_cellranger, flatten, reads_per_gapfill, probe_bc, sample_id=sample_id, ilab=ilab)
 
 
 def main():
@@ -570,8 +604,16 @@ def main():
         help="Sample/library name from the samplesheet, shown in the HTML report header."
     )
 
+    parser.add_argument(
+        "--ilab",
+        required=False,
+        default=None,
+        type=str,
+        help="iLab service-request number, shown in the HTML report header."
+    )
+
     args = parser.parse_args()
-    run(args.output, args.overwrite, args.cellranger_output, args.flatten, args.reads_per_gapfill, sample_id=args.sample_id)
+    run(args.output, args.overwrite, args.cellranger_output, args.flatten, args.reads_per_gapfill, sample_id=args.sample_id, ilab=args.ilab)
 
 
 if __name__ == "__main__":

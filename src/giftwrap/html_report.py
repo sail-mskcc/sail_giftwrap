@@ -6,6 +6,7 @@ Matches the visual authority of CellRanger web_summary.html.
 """
 
 from __future__ import annotations
+import base64
 import json
 from pathlib import Path
 from typing import Optional
@@ -27,12 +28,12 @@ def _saturation_curve(total_reads_layer, n_points: int = 100) -> tuple[list, lis
     arr = mat.flatten()
     arr = arr[arr > 0].astype(int)
     total = arr.sum()
+    probs = arr / total  # loop-invariant — compute once, not per fraction
     fractions = np.linspace(0.05, 1.0, n_points)
     xs, ys = [], []
     rng = np.random.default_rng(42)
     for frac in fractions:
         target = int(total * frac)
-        probs = arr / total
         sampled = rng.multinomial(target, probs)
         sat = 1 - (sampled > 0).sum() / max(target, 1)
         xs.append(round(target / n_cells, 2))
@@ -41,10 +42,6 @@ def _saturation_curve(total_reads_layer, n_points: int = 100) -> tuple[list, lis
 
 
 def _fig_sankey(fastq: dict, counts: dict) -> dict:
-    total = fastq.get("TOTAL_READS", 0)
-    probe = fastq.get("PROBE_CONTAINING_READS", 0)
-    filtered = total - probe
-
     label = [
         "All Reads", "Exact Matches", "Corrected LHS", "Corrected RHS", "Corrected Barcode",
         "Filtered", "No LHS", "No RHS", "No Cell Barcode", "No Constant Seq", "No Probe BC",
@@ -52,39 +49,59 @@ def _fig_sankey(fastq: dict, counts: dict) -> dict:
     ]
     idx = {l: i for i, l in enumerate(label)}
 
-    # Scientific color palette — muted, professional
+    # One blue for the whole mapped side, one red for the whole filtered side.
     node_colors = [
         "#2563EB",  # All Reads — blue
-        "#0891B2",  # Exact Matches
-        "#0284C7",  # Corrected LHS
-        "#0369A1",  # Corrected RHS
-        "#0EA5E9",  # Corrected Barcode
+        "#2563EB",  # Exact Matches
+        "#2563EB",  # Corrected LHS
+        "#2563EB",  # Corrected RHS
+        "#2563EB",  # Corrected Barcode
         "#DC2626",  # Filtered — red
-        "#EF4444",  # No LHS
-        "#F87171",  # No RHS
-        "#FCA5A5",  # No Cell Barcode
-        "#FECACA",  # No Constant Seq
-        "#FEE2E2",  # No Probe BC
-        "#059669",  # Mapped Reads — green
+        "#DC2626",  # No LHS
+        "#DC2626",  # No RHS
+        "#DC2626",  # No Cell Barcode
+        "#DC2626",  # No Constant Seq
+        "#DC2626",  # No Probe BC
+        "#2563EB",  # Mapped Reads — blue
     ]
 
+    # Both halves read the same way: All Reads → reason (layer 2) → aggregate
+    # (layer 3). Mapped reasons converge into "Mapped Reads"; filtered reasons
+    # converge into "Filtered".
     raw_flows = [
         ("All Reads", "Exact Matches",     fastq.get("EXACT", 0)),
         ("All Reads", "Corrected LHS",     fastq.get("CORRECTED_LHS", 0)),
         ("All Reads", "Corrected RHS",     fastq.get("CORRECTED_RHS", 0)),
         ("All Reads", "Corrected Barcode", fastq.get("CORRECTED_BARCODE", 0)),
-        ("All Reads", "Filtered",          filtered),
-        ("Filtered",  "No LHS",            fastq.get("FILTERED_NO_LHS", 0)),
-        ("Filtered",  "No RHS",            fastq.get("FILTERED_NO_RHS", 0)),
-        ("Filtered",  "No Cell Barcode",   fastq.get("FILTERED_NO_CELL_BARCODE", 0)),
-        ("Filtered",  "No Constant Seq",   fastq.get("FILTERED_NO_CONSTANT", 0)),
-        ("Filtered",  "No Probe BC",       fastq.get("FILTERED_NO_PROBE_BARCODE", 0)),
         ("Exact Matches",    "Mapped Reads", fastq.get("EXACT", 0)),
         ("Corrected LHS",    "Mapped Reads", fastq.get("CORRECTED_LHS", 0)),
         ("Corrected RHS",    "Mapped Reads", fastq.get("CORRECTED_RHS", 0)),
         ("Corrected Barcode","Mapped Reads", fastq.get("CORRECTED_BARCODE", 0)),
+        ("All Reads", "No LHS",          fastq.get("FILTERED_NO_LHS", 0)),
+        ("All Reads", "No RHS",          fastq.get("FILTERED_NO_RHS", 0)),
+        ("All Reads", "No Cell Barcode", fastq.get("FILTERED_NO_CELL_BARCODE", 0)),
+        ("All Reads", "No Constant Seq", fastq.get("FILTERED_NO_CONSTANT", 0)),
+        ("All Reads", "No Probe BC",     fastq.get("FILTERED_NO_PROBE_BARCODE", 0)),
+        ("No LHS",          "Filtered", fastq.get("FILTERED_NO_LHS", 0)),
+        ("No RHS",          "Filtered", fastq.get("FILTERED_NO_RHS", 0)),
+        ("No Cell Barcode", "Filtered", fastq.get("FILTERED_NO_CELL_BARCODE", 0)),
+        ("No Constant Seq", "Filtered", fastq.get("FILTERED_NO_CONSTANT", 0)),
+        ("No Probe BC",     "Filtered", fastq.get("FILTERED_NO_PROBE_BARCODE", 0)),
     ]
     flows = [(s, t, v) for s, t, v in raw_flows if v > 0]
+
+    # Nodes on the filtered side; a link is pink if it touches one of these.
+    # (Can't use idx >= 5: Mapped Reads is idx 11 but belongs to the mapped side.)
+    filt_idx = {idx[n] for n in
+                ("Filtered", "No LHS", "No RHS", "No Cell Barcode",
+                 "No Constant Seq", "No Probe BC")}
+
+    # Per-link percentage of the source node's total outgoing reads (P2.3).
+    outgoing_total: dict = {}
+    for s, _, v in flows:
+        outgoing_total[s] = outgoing_total.get(s, 0) + v
+    link_pct = [100.0 * v / outgoing_total[s] if outgoing_total.get(s) else 0.0
+                for s, _, v in flows]
 
     return {
         "data": [{
@@ -100,18 +117,17 @@ def _fig_sankey(fastq: dict, counts: dict) -> dict:
                 "source": [idx[s] for s, _, _ in flows],
                 "target": [idx[t] for _, t, _ in flows],
                 "value":  [v       for _, _, v in flows],
-                "color":  ["rgba(37,99,235,0.15)" if idx[s] < 5 else "rgba(220,38,38,0.12)"
-                           for s, _, _ in flows],
-                "hovertemplate": "%{source.label} → %{target.label}<br><b>%{value:,}</b> reads<extra></extra>",
+                "customdata": link_pct,
+                # Pink if either endpoint is on the filtered side, else blue.
+                "color":  ["rgba(220,38,38,0.12)" if (idx[s] in filt_idx or idx[t] in filt_idx)
+                           else "rgba(37,99,235,0.15)" for s, t, _ in flows],
+                "hovertemplate": "%{source.label} → %{target.label}<br><b>%{value:,}</b> reads (%{customdata:.1f}% of %{source.label})<extra></extra>",
             },
         }],
         "layout": {
-            "title": {"text": "Read Processing Flow",
-                      "font": {"size": 14, "color": "#374151", "family": "Figtree, sans-serif"},
-                      "x": 0.0, "xanchor": "left"},
             "font": {"size": 11, "family": "Figtree, sans-serif", "color": "#374151"},
             "height": 420,
-            "margin": {"l": 10, "r": 10, "t": 50, "b": 10},
+            "margin": {"l": 10, "r": 10, "t": 16, "b": 10},
             "paper_bgcolor": "rgba(0,0,0,0)",
             "plot_bgcolor":  "rgba(0,0,0,0)",
         }
@@ -123,7 +139,10 @@ def _fig_barcode_rank(gapfill_adata) -> dict:
     umis_sorted = sorted(umis, reverse=True)
     ranks = list(range(1, len(umis_sorted) + 1))
     if len(umis_sorted) > 2000:
-        indices = np.unique(np.round(np.logspace(0, np.log10(len(umis_sorted) - 1), 1000)).astype(int))
+        # Prepend index 0 so the top (rank-1) barcode — the most informative
+        # point of a knee plot — is never dropped by the log-spacing.
+        indices = np.unique(np.concatenate(([0], np.round(
+            np.logspace(0, np.log10(len(umis_sorted) - 1), 1000)).astype(int))))
         umis_sorted = [umis_sorted[i] for i in indices]
         ranks = [ranks[i] for i in indices]
     return {
@@ -133,11 +152,10 @@ def _fig_barcode_rank(gapfill_adata) -> dict:
                   "fill": "tozeroy", "fillcolor": "rgba(29,78,216,0.06)",
                   "hovertemplate": "Rank %{x}<br><b>%{y:,}</b> UMIs<extra></extra>"}],
         "layout": {
-            "title": {"text": "Barcode Rank Plot", "font": {"size": 13}},
             "xaxis": {"title": "Barcode Rank", "type": "log", "showgrid": True},
             "yaxis": {"title": "UMI Counts", "type": "log", "showgrid": True},
             "height": 340,
-            "margin": {"l": 60, "r": 20, "t": 44, "b": 50},
+            "margin": {"l": 60, "r": 20, "t": 16, "b": 50},
         }
     }
 
@@ -155,11 +173,10 @@ def _fig_saturation_curve(gapfill_adata) -> dict:
                   "line": {"color": "#0369A1", "width": 2},
                   "hovertemplate": "Mean reads/cell: %{x}<br>Saturation: %{y:.1%}<extra></extra>"}],
         "layout": {
-            "title": {"text": "Sequencing Saturation", "font": {"size": 13}},
             "xaxis": {"title": "Mean Reads per Cell", "showgrid": True},
             "yaxis": {"title": "Sequencing Saturation", "tickformat": ".0%", "range": [0, 1], "showgrid": True},
             "height": 340,
-            "margin": {"l": 70, "r": 20, "t": 44, "b": 50},
+            "margin": {"l": 70, "r": 20, "t": 16, "b": 50},
         }
     }
 
@@ -191,40 +208,28 @@ def _fig_pcr_histogram(probe_reads_file, filter_cutoff: int) -> dict:
     return {
         "data": [{"type": "bar", "x": mid, "y": counts.tolist(),
                   "marker": {"color": "#0EA5E9"},
-                  "hovertemplate": "Log₁₀(dups+1)=%{x:.2f}<br>UMIs: %{y:,}<extra></extra>"}],
+                  "hovertemplate": "Reads/UMI ≈ %{x:.2f} (log₁₀)<br>UMIs: %{y:,}<extra></extra>"}],
         "layout": {
-            "title": {"text": "PCR Duplicate Distribution", "font": {"size": 13}},
-            "xaxis": {"title": "Log₁₀(PCR duplicates + 1)", "showgrid": True},
+            "xaxis": {"title": "Reads per UMI (log₁₀ scale)", "showgrid": True},
             "yaxis": {"title": "# of UMIs", "showgrid": True},
             "shapes": shapes, "height": 340,
-            "margin": {"l": 60, "r": 20, "t": 44, "b": 50},
+            "margin": {"l": 60, "r": 20, "t": 16, "b": 50},
         }
     }
 
 
 def _fig_umis_per_cell(gapfill_adata) -> dict:
     umis = _to_list(gapfill_adata.X.sum(axis=1))
-    n_gapfills = gapfill_adata.n_vars
     counts, edges = np.histogram(umis, bins=80)
     mid = ((edges[:-1] + edges[1:]) / 2).tolist()
-    shapes, annotations = [], []
-    if n_gapfills:
-        shapes.append({"type": "line", "x0": n_gapfills, "x1": n_gapfills,
-                       "yref": "paper", "y0": 0, "y1": 1,
-                       "line": {"color": "#DC2626", "dash": "dash", "width": 1.5}})
-        annotations.append({"x": n_gapfills, "yref": "paper", "y": 0.96,
-                             "text": f"# gapfills = {n_gapfills}", "showarrow": False,
-                             "font": {"color": "#DC2626", "size": 11}})
     return {
         "data": [{"type": "bar", "x": mid, "y": counts.tolist(),
                   "marker": {"color": "#2563EB", "opacity": 0.8},
                   "hovertemplate": "UMIs: %{x:.0f}<br>Cells: %{y:,}<extra></extra>"}],
         "layout": {
-            "title": {"text": "UMIs per Cell", "font": {"size": 13}},
             "xaxis": {"title": "UMIs per Cell", "showgrid": True},
-            "yaxis": {"title": "# of Cells", "showgrid": True},
-            "shapes": shapes, "annotations": annotations,
-            "height": 340, "margin": {"l": 60, "r": 20, "t": 44, "b": 50},
+            "yaxis": {"title": "# of Cells (log scale)", "type": "log", "showgrid": True},
+            "height": 340, "margin": {"l": 60, "r": 20, "t": 16, "b": 50},
         }
     }
 
@@ -236,44 +241,65 @@ def _fig_cells_per_gapfill(gapfill_adata) -> dict:
     return {
         "data": [{"type": "bar", "x": mid, "y": counts.tolist(),
                   "marker": {"color": "#059669", "opacity": 0.8},
-                  "hovertemplate": "Cells: %{x:.0f}<br>Gapfills: %{y:,}<extra></extra>"}],
+                  "hovertemplate": "%{y:,} variants detected in ~%{x:.0f} cells<extra></extra>"}],
         "layout": {
-            "title": {"text": "Cells per Gapfill", "font": {"size": 13}},
-            "xaxis": {"title": "Cells Containing Gapfill", "showgrid": True},
-            "yaxis": {"title": "# of Gapfills", "showgrid": True},
-            "height": 340, "margin": {"l": 60, "r": 20, "t": 44, "b": 50},
+            "xaxis": {"title": "Number of cells a variant is detected in", "showgrid": True},
+            "yaxis": {"title": "Number of gapfill variants (log)", "type": "log", "showgrid": True},
+            "height": 340, "margin": {"l": 60, "r": 20, "t": 16, "b": 50},
         }
     }
 
 
-def _fig_probe_boxplot(gapfill_adata) -> dict:
+def _fig_probe_boxplot(gapfill_adata, top_n: int = 15) -> dict:
+    """Top gapfill variants (probe + gap sequence) ranked by cell prevalence.
+
+    Per-cell UMI counts for a probe are near-binary (almost always 0 or 1), so a
+    boxplot collapses to a flat line and conveys nothing. Instead, rank each
+    variant column by the number of cells that carry it and draw a horizontal bar
+    sized by that variant's prevalence (% of cells), so how common each genotype
+    is reads at a glance.
+    """
     if "probe" not in gapfill_adata.var.columns:
         return {}
-    probes = gapfill_adata.var["probe"].unique().tolist()
-    traces = []
-    colors = ["#1D4ED8", "#0369A1", "#0891B2", "#059669", "#7C3AED",
-              "#BE185D", "#DC2626", "#D97706", "#065F46", "#1E40AF"]
-    for i, probe in enumerate(probes):
-        vals = np.array(_to_list(gapfill_adata[:, gapfill_adata.var["probe"] == probe].X.sum(axis=1)))
-        q1, med, q3 = np.percentile(vals, [25, 50, 75])
-        iqr = q3 - q1
-        traces.append({
-            "type": "box", "name": probe,
-            "q1": [float(q1)], "median": [float(med)], "q3": [float(q3)],
-            "lowerfence": [float(max(q1 - 1.5 * iqr, vals.min()))],
-            "upperfence": [float(min(q3 + 1.5 * iqr, vals.max()))],
-            "mean": [float(vals.mean())],
-            "marker": {"color": colors[i % len(colors)]},
-            "line": {"color": colors[i % len(colors)]},
-        })
+    probe_arr = gapfill_adata.var["probe"].values
+    seq_col = "gapfill" if "gapfill" in gapfill_adata.var.columns else None
+    seq_arr = (gapfill_adata.var[seq_col].values if seq_col
+               else gapfill_adata.var_names.values)
+    # One column = one (probe, gap sequence) variant; rank by the number of cells
+    # detecting it (UMI >= 1), not total UMIs (P4.1).
+    cells_per_variant = np.asarray((gapfill_adata.X > 0).sum(axis=0)).flatten()
+    n_cells = gapfill_adata.shape[0]
+    if n_cells <= 0:
+        return {}
+    # plotly draws the first y-category at the bottom, so reverse the descending
+    # order to put the largest bar at the top of the list.
+    order = np.argsort(cells_per_variant)[::-1][:top_n][::-1]
+    counts = cells_per_variant[order]
+    pcts = (counts / n_cells * 100.0)
+
+    def _short(s, n=28):
+        s = str(s)
+        return s if len(s) <= n else s[: n - 1] + "…"
+
+    labels = [f"{probe_arr[j]} · {_short(seq_arr[j])}" for j in order]
+    customdata = [[str(probe_arr[j]), str(seq_arr[j]), int(cells_per_variant[j])]
+                  for j in order]
     return {
-        "data": traces,
+        "data": [{
+            "type": "bar", "orientation": "h",
+            "x": pcts.tolist(), "y": labels,
+            "customdata": customdata,
+            "marker": {"color": "#1D4ED8", "opacity": 0.85},
+            "text": [f"{p:.1f}%" for p in pcts],
+            "textposition": "outside", "cliponaxis": False,
+            "hovertemplate": ("<b>%{customdata[0]}</b><br>gap: %{customdata[1]}"
+                              "<br>%{customdata[2]:,} cells (%{x:.2f}%)<extra></extra>"),
+        }],
         "layout": {
-            "title": {"text": "UMI Distribution per Probe", "font": {"size": 13}},
-            "yaxis": {"title": "UMIs per Cell", "showgrid": True},
-            "xaxis": {"title": "Probe"},
-            "height": 420,
-            "margin": {"l": 60, "r": 20, "t": 44, "b": 140},
+            "xaxis": {"title": "Cells carrying variant (% of cells)", "showgrid": True},
+            "yaxis": {"automargin": True, "tickfont": {"size": 10}},
+            "height": 460,
+            "margin": {"l": 200, "r": 48, "t": 16, "b": 50},
             "showlegend": False,
         }
     }
@@ -289,21 +315,29 @@ def _fig_reads_per_gapfill(gapfill_adata) -> dict:
     reads_sorted = sorted(reads, reverse=True)
     detected = [r for r in reads if r > 0]
     mean_reads = float(np.mean(detected)) if detected else 0.0
+    # One bar per gapfill variant; panels can have hundreds of thousands, so
+    # subsample the rank curve (log-spaced to preserve the head) for display.
+    n_total = len(reads_sorted)
+    ranks = list(range(n_total))
+    if n_total > 2000:
+        idx = np.unique(np.concatenate(([0], np.round(
+            np.geomspace(1, n_total - 1, 1000)).astype(int))))
+        reads_sorted = [reads_sorted[i] for i in idx]
+        ranks = [int(i) for i in idx]
     return {
         "data": [
-            {"type": "bar", "x": list(range(len(reads_sorted))), "y": reads_sorted,
+            {"type": "bar", "x": ranks, "y": reads_sorted,
              "marker": {"color": "#0369A1"},
              "hovertemplate": "Gapfill rank %{x}<br>Reads: %{y:,}<extra></extra>"},
             {"type": "scatter", "mode": "lines",
-             "x": [0, len(reads_sorted) - 1], "y": [mean_reads, mean_reads],
+             "x": [0, n_total - 1], "y": [mean_reads, mean_reads],
              "line": {"color": "#DC2626", "dash": "dash", "width": 1.5},
              "name": f"Mean ({mean_reads:,.0f}, detected only)"},
         ],
         "layout": {
-            "title": {"text": "Supporting Reads per Gapfill", "font": {"size": 13}},
             "xaxis": {"title": "Gapfill Rank", "showticklabels": False},
             "yaxis": {"title": "Reads (log scale)", "type": "log", "showgrid": True},
-            "height": 340, "margin": {"l": 70, "r": 20, "t": 44, "b": 50},
+            "height": 340, "margin": {"l": 70, "r": 20, "t": 16, "b": 50},
             "showlegend": True,
         }
     }
@@ -312,7 +346,23 @@ def _fig_reads_per_gapfill(gapfill_adata) -> dict:
 def _fig_wta_correlation(gapfill_adata, adata) -> list[dict]:
     if adata is None:
         return []
-    adata = adata[gapfill_adata.obs.index, :]
+    # GIFTwrap barcodes embed a plex_seq before the suffix (CELLBC{plex_seq}-1)
+    # while CellRanger barcodes are plain 16bp (CELLBC-1). Strip the plex_seq when
+    # prefix lengths differ so the two sets line up — mirrors the PDF path in
+    # step5_summarize_counts.py. Without this, indexing adata by GIFTwrap
+    # barcodes selects the wrong cells (or raises).
+    gw_bcs = gapfill_adata.obs.index
+    cr_bcs = gw_bcs
+    if len(gw_bcs) > 0 and len(adata.obs_names) > 0:
+        gw_plen = len(gw_bcs[0].rsplit("-", 1)[0])
+        cr_plen = len(adata.obs_names[0].rsplit("-", 1)[0])
+        if gw_plen > cr_plen:
+            plex_len = gw_plen - cr_plen
+            cr_bcs = pd.Index([
+                bc.rsplit("-", 1)[0][:-plex_len] + "-" + bc.rsplit("-", 1)[1]
+                for bc in gw_bcs
+            ])
+    adata = adata[cr_bcs, :]
     if "gene" not in gapfill_adata.var.columns:
         gapfill_adata.var["gene"] = [p.replace(" ", "_").split("_")[0] for p in gapfill_adata.var["probe"]]
     adata.var["gene"] = adata.var_names.values
@@ -330,27 +380,43 @@ def _fig_wta_correlation(gapfill_adata, adata) -> list[dict]:
         gap_sc[:, i] = gapfill_adata[:, gapfill_adata.var["probe"] == probe].X.toarray().sum(axis=1).flatten()
     sc_rho, sc_p = spearmanr(gap_sc.flatten(), wta_sc.flatten())
 
-    def _scatter(x, y, title):
+    def _scatter(x, y, title, xlabel, ylabel, max_points: Optional[int] = None):
+        # The correlation (title) is always computed on the full data by the
+        # caller; here we only thin what gets embedded as scatter markers so the
+        # report does not balloon to hundreds of MB. The all-zero (0,0) pairs are
+        # overplotted and uninformative, so drop them first, then cap.
+        x = np.asarray(x); y = np.asarray(y)
+        if max_points is not None:
+            nz = (x > 0) | (y > 0)
+            x, y = x[nz], y[nz]
+            if x.size > max_points:
+                sel = np.random.default_rng(42).choice(x.size, max_points, replace=False)
+                x, y = x[sel], y[sel]
         return {
             "data": [{"type": "scatter", "mode": "markers",
                       "x": x.tolist(), "y": y.tolist(),
                       "marker": {"size": 4, "color": "#2563EB", "opacity": 0.5},
-                      "hovertemplate": "Gapfill: %{x}<br>WTA: %{y}<extra></extra>"}],
+                      "hovertemplate": xlabel + ": %{x}<br>" + ylabel + ": %{y}<extra></extra>"}],
             "layout": {
                 "title": {"text": title, "font": {"size": 12}},
-                "xaxis": {"title": "Gapfill Expression", "showgrid": True},
-                "yaxis": {"title": "WTA Expression", "showgrid": True},
+                "xaxis": {"title": xlabel, "showgrid": True},
+                "yaxis": {"title": ylabel, "showgrid": True},
                 "height": 340, "margin": {"l": 70, "r": 20, "t": 50, "b": 50},
             }
         }
 
     figs = [_scatter(gap_sc.flatten(), wta_sc.flatten(),
-                     f"Single-cell: Spearman ρ = {sc_rho:.2f} (p = {sc_p:.2e})")]
+                     f"Single-cell: Spearman ρ = {sc_rho:.2f} (p = {sc_p:.2e})",
+                     "Gapfill probe UMIs (per cell)",
+                     "WTA gene UMIs (per cell)",
+                     max_points=50_000)]
     pb_gap = gap_sc.sum(axis=0)
     pb_wta = wta_sc.sum(axis=0)
     pb_rho, pb_p = spearmanr(pb_gap, pb_wta)
     figs.append(_scatter(pb_gap, pb_wta,
-                         f"Pseudobulk: Spearman ρ = {pb_rho:.2f} (p = {pb_p:.2e})"))
+                         f"Pseudobulk: Spearman ρ = {pb_rho:.2f} (p = {pb_p:.2e})",
+                         "Gapfill probe UMIs (summed across cells)",
+                         "WTA gene UMIs (summed across cells)"))
     return figs
 
 
@@ -361,7 +427,21 @@ def _build_hero_metrics(fastq: dict, counts: dict, gapfill_adata=None) -> list[d
     sat = float(counts.get("SEQUENCING_SATURATION", 0)) * 100
     cells_w_probes = int(counts.get("GAPFILL_CONTAINING_CELLS", 0))
     est_cells = int(counts.get("TOTAL_CELLS", 0))
-    detection_rate = cells_w_probes / est_cells if est_cells else 0
+    # The detection rate is only meaningful when TOTAL_CELLS comes from a real
+    # cell-calling denominator (e.g. WTA/cellranger barcodes). When no separate
+    # cell list is provided, TOTAL_CELLS == GAPFILL_CONTAINING_CELLS and the
+    # ratio is a meaningless 100% — show n/a instead (P2.6).
+    has_real_total = est_cells > cells_w_probes
+    if has_real_total:
+        detection_rate_val = f"{cells_w_probes / est_cells:.1%}"
+        detection_rate_sub = f"{cells_w_probes:,} of {est_cells:,} estimated"
+    else:
+        detection_rate_val = "n/a"
+        detection_rate_sub = "no separate cell-calling denominator provided"
+
+    encountered = int(fastq.get("PROBES_ENCOUNTERED", 0))
+    possible = int(fastq.get("POSSIBLE_PROBES", 0))
+    probes_pct = f" ({100 * encountered / possible:.1f}%)" if possible else ""
 
     if gapfill_adata is not None:
         probes_per_cell = float(np.asarray((gapfill_adata.X > 0).sum(axis=1)).flatten().mean())
@@ -369,14 +449,24 @@ def _build_hero_metrics(fastq: dict, counts: dict, gapfill_adata=None) -> list[d
         probes_per_cell = 0.0
 
     return [
-        {"label": "Cells with Probes",          "value": f"{cells_w_probes:,}",                           "sub": "gapfill-containing barcodes"},
-        {"label": "Mean UMIs / Cell",          "value": f"{counts.get('UMIS_PER_CELL_MEAN', 0):.1f}",   "sub": "gapfill UMIs"},
-        {"label": "Probes / Cell",             "value": f"{probes_per_cell:.1f}",                        "sub": "mean gapfills detected per cell"},
-        {"label": "Cells with Probes / Total Cells", "value": f"{detection_rate:.1%}",                     "sub": f"{cells_w_probes:,} of {est_cells:,} estimated"},
-        {"label": "Total Reads",               "value": f"{int(total):,}",                              "sub": "sequenced read pairs"},
-        {"label": "Reads Mapped",              "value": f"{pct_mapped:.1f}%",                           "sub": "probe-containing reads"},
-        {"label": "Sequencing Saturation",     "value": f"{sat:.1f}%",                                  "sub": "PCR duplicate fraction"},
-        {"label": "Total UMIs",                "value": f"{int(counts.get('TOTAL_UMIS', 0)):,}",        "sub": "across all cells"},
+        {"label": "Cells with Probes",          "value": f"{cells_w_probes:,}",                           "sub": "gapfill-containing barcodes",
+         "tip": "Number of called cells with at least one detected gapfill probe (UMI > 0)."},
+        {"label": "Mean UMIs / Cell",          "value": f"{counts.get('UMIS_PER_CELL_MEAN', 0):.1f}",   "sub": "gapfill UMIs",
+         "tip": "Average number of unique gapfill molecules (UMIs) detected per called cell."},
+        {"label": "Probes / Cell",             "value": f"{probes_per_cell:.1f}",                        "sub": "mean gapfills detected per cell",
+         "tip": "Average number of distinct gapfill probes detected per called cell. A cell can have several UMIs from one probe, so this is always ≤ Mean UMIs / Cell."},
+        {"label": "Encountered / Possible Probes", "value": f"{encountered:,} / {possible:,}",            "sub": f"probes detected / panel size{probes_pct}",
+         "tip": "Distinct probes detected in this dataset versus the total number of probes in the reference panel."},
+        {"label": "Cells with Probes / Total Cells", "value": detection_rate_val,                          "sub": detection_rate_sub,
+         "tip": "Fraction of all called cells that contain at least one gapfill probe. Requires a separate cell-calling denominator (e.g. WTA/cellranger barcodes)."},
+        {"label": "Total Reads",               "value": f"{int(total):,}",                              "sub": "sequenced read pairs",
+         "tip": "Total input read pairs before any filtering."},
+        {"label": "Reads Mapped",              "value": f"{pct_mapped:.1f}%",                           "sub": "probe-containing reads",
+         "tip": "Percentage of input reads where a gapfill probe was successfully identified and assigned to a cell barcode."},
+        {"label": "Sequencing Saturation",     "value": f"{sat:.1f}%",                                  "sub": "PCR duplicate fraction",
+         "tip": "Fraction of reads that are PCR duplicates (already-seen UMIs). Low values mean deeper sequencing would yield more unique UMIs."},
+        {"label": "Total UMIs",                "value": f"{int(counts.get('TOTAL_UMIS', 0)):,}",        "sub": "across all cells",
+         "tip": "Sum of all gapfill UMI counts across every cell."},
     ]
 
 
@@ -691,6 +781,7 @@ footer .brand {{ font-family: var(--mono); font-weight: 500; color: var(--accent
   padding: 9px 13px;
   border-radius: 6px;
   max-width: 300px;
+  white-space: pre-line;
   z-index: 9999;
   pointer-events: none;
   display: none;
@@ -717,14 +808,15 @@ footer .brand {{ font-family: var(--mono); font-weight: 500; color: var(--accent
     <span><b>Generated</b> {timestamp}</span>
     <span><b>Pipeline</b> <a href="https://doi.org/10.64898/2026.04.11.717967" target="_blank" rel="noopener">GIFTwrap</a></span>
     <span><b>Chemistry</b> 10x Flex</span>
+    {ilab_meta_span}
     {sample_meta_span}
+    {metrics_download}
   </div>
 </div>
 
 <!-- Nav -->
 <nav>
   <button class="active" onclick="showTab('overview', this)">Summary</button>
-  <button onclick="showTab('reads', this)">Read Processing</button>
   <button onclick="showTab('cells', this)">Cell QC</button>
   <button onclick="showTab('gapfills', this)">Gapfill Analysis</button>
   {wta_tab_btn}
@@ -742,7 +834,13 @@ footer .brand {{ font-family: var(--mono); font-weight: 500; color: var(--accent
     <div class="card">
       <div class="card-header">
         <span class="card-title">Read Processing Flow</span>
-        <span class="help-btn" data-tip="Exact Match: barcode + probe matched the reference perfectly with no sequencing errors. Corrected LHS/RHS: the left or right anchor sequence had 1-2 errors fixed by the aligner. Corrected Barcode: cell barcode had 1 mismatch corrected against the 10x Flex whitelist. Filtered reads were unrecoverable — No Constant Seq: fixed spacer between barcode and probe was missing; No Cell Barcode: barcode unrecognized even after correction; No LHS/RHS: anchor sequences absent so the probe cannot be located; No Probe BC: gapfill sequence not found in the reference panel.">?</span>
+        <span class="help-btn" data-tip="Exact Match: probe + barcode matched the reference with no errors
+Corrected LHS/RHS: 1–2 errors in a probe arm fixed by the aligner
+Corrected Barcode: 1 barcode mismatch corrected against the Flex whitelist
+No Constant Seq: spacer between barcode and probe was missing
+No Cell Barcode: barcode unrecognized even after correction
+No LHS/RHS: a probe arm was absent, so the probe can't be located
+No Probe BC: gapfill not found in the reference panel">?</span>
       </div>
       <div class="card-body">
         <div id="plot-sankey-overview"></div>
@@ -751,20 +849,21 @@ footer .brand {{ font-family: var(--mono); font-weight: 500; color: var(--accent
     <div class="card">
       <div class="card-header">
         <span class="card-title">Barcode Rank Plot (Knee Plot)</span>
-        <span class="help-btn" data-tip="Each barcode ranked by its total gapfill UMI count (both axes log scale). Real cells cluster on the left as a flat plateau (many UMIs); empty droplets and background noise trail off on the right (few UMIs). The knee between them is where the cell caller draws the line — everything left of the knee is called a cell. A sharp knee means clean cell/background separation; a gradual slope may suggest ambient RNA contamination or many low-RNA cells.">?</span>
+        <span class="help-btn" data-tip="Each barcode ranked by its total gapfill UMI count (both axes log scale). Real cells cluster on the left as a flat plateau (many UMIs); empty droplets and background noise trail off on the right (few UMIs).
+The knee between them is where the cell caller draws the line between cells and noise. A sharp knee means clean cell/background separation; a gradual slope may suggest ambient RNA contamination or many low-RNA cells.">?</span>
       </div>
       <div class="card-body">
         <div id="plot-barcode-rank-overview"></div>
       </div>
     </div>
   </div>
-</div>
-
-<!-- READ PROCESSING TAB -->
-<div id="tab-reads" class="tab-panel">
   <div class="plot-2col">
     <div class="card">
-      <div class="card-header"><span class="card-title">PCR Duplicate Distribution</span></div>
+      <div class="card-header">
+        <span class="card-title">PCR Duplicate Distribution</span>
+        <span class="help-btn" data-tip="Distribution of reads per UMI (PCR duplicate level), log scale. Each UMI is one original molecule; bar height is how many UMIs were sequenced at that duplication level.
+Shifted right = many reads are PCR duplicates (high saturation); near 1 = most reads are unique molecules, so deeper sequencing would still recover new UMIs.">?</span>
+      </div>
       <div class="card-body"><div id="plot-pcr"></div></div>
     </div>
     <div class="card">
@@ -784,11 +883,22 @@ footer .brand {{ font-family: var(--mono); font-weight: 500; color: var(--accent
   </div>
   <div class="plot-2col">
     <div class="card">
-      <div class="card-header"><span class="card-title">Cells per Gapfill</span></div>
+      <div class="card-header">
+        <span class="card-title">Detection breadth of gapfill variants</span>
+        <span class="help-btn" data-tip="How many cells each distinct gapfill variant is detected in (x-axis), counted across all variants (y-axis, log scale).
+
+        GOOD: variants detected across many cells (mass toward the right). Broadly-shared gapfills are reproducible and likely real genotypes.
+
+        BAD: nearly everything piled at 1–2 cells with nothing broad. Single-cell variants are usually PCR/sequencing artifacts; a long singleton tail is normal, but without some broadly-detected variants there's no reproducible signal.">?</span>
+      </div>
       <div class="card-body"><div id="plot-cells-per-gapfill"></div></div>
     </div>
     <div class="card">
-      <div class="card-header"><span class="card-title">Supporting Reads per Gapfill</span></div>
+      <div class="card-header">
+        <span class="card-title">Supporting Reads per Gapfill</span>
+        <span class="help-btn" data-tip="Gapfill Rank orders every detected gapfill from most-supported to least-supported by total read count — rank 1 is the best-supported gapfill, and the curve falls off toward the rarely-observed ones on the right.
+The y-axis (log scale) is the number of supporting reads. A long flat head followed by a steep drop indicates a few dominant, well-supported gapfills.">?</span>
+      </div>
       <div class="card-body"><div id="plot-reads-per-gapfill"></div></div>
     </div>
   </div>
@@ -798,7 +908,7 @@ footer .brand {{ font-family: var(--mono); font-weight: 500; color: var(--accent
 <div id="tab-gapfills" class="tab-panel">
   <div class="plot-1col">
     <div class="card">
-      <div class="card-header"><span class="card-title">UMI Distribution per Probe</span></div>
+      <div class="card-header"><span class="card-title">Top Gapfill Variants by Cell Prevalence</span></div>
       <div class="card-body"><div id="plot-probe-boxplot"></div></div>
     </div>
   </div>
@@ -857,6 +967,7 @@ const cfg = {{
 
 // Light theme applied to all plots
 const theme = {{
+  autosize: true,
   paper_bgcolor: 'rgba(0,0,0,0)',
   plot_bgcolor:  'rgba(0,0,0,0)',
   font: {{color: '#374151', family: 'Figtree, system-ui, sans-serif', size: 12}},
@@ -917,10 +1028,13 @@ def make_html_report(
     probe_reads_path: Path,
     filter_cutoff: int = 0,
     sample_id: Optional[str] = None,
+    ilab: Optional[str] = None,
+    plex_id: Optional[str] = None,
 ) -> None:
     import datetime
-    parts = output_file.name.split(".")
-    plex_id = parts[1] if len(parts) > 2 else output_file.stem
+    if plex_id is None:
+        parts = output_file.name.split(".")
+        plex_id = parts[1] if len(parts) > 2 else output_file.stem
 
     fastq: dict = {}
     counts: dict = {}
@@ -959,11 +1073,17 @@ def make_html_report(
 <div id="tab-wta" class="tab-panel">
   <div class="plot-2col">
     <div class="card">
-      <div class="card-header"><span class="card-title">Single-cell Correlation</span></div>
+      <div class="card-header">
+        <span class="card-title">Single-cell Correlation</span>
+        <span class="help-btn" data-tip="One point per cell × probe: gapfill UMIs (x) vs WTA expression (y) for the same gene in the same cell. Tests whether gapfill tracks WTA cell-by-cell — the stringent check, naturally noisy due to per-cell dropout. A positive Spearman ρ means probes report the right signal at single-cell resolution.">?</span>
+      </div>
       <div class="card-body"><div id="plot-wta-sc"></div></div>
     </div>
     <div class="card">
-      <div class="card-header"><span class="card-title">Pseudobulk Correlation</span></div>
+      <div class="card-header">
+        <span class="card-title">Pseudobulk Correlation</span>
+        <span class="help-btn" data-tip="One point per probe, counts summed across all cells: total gapfill (x) vs total WTA (y). Tests whether gapfill tracks overall gene abundance with single-cell noise averaged out — usually a much higher ρ. Confirms probe design and quantification are sound at the assay level.">?</span>
+      </div>
       <div class="card-body"><div id="plot-wta-pb"></div></div>
     </div>
   </div>
@@ -971,9 +1091,15 @@ def make_html_report(
     wta_plot_js = "plot('plot-wta-sc', FIGS.wta_sc);\nplot('plot-wta-pb', FIGS.wta_pb);" if wta_figs else ""
 
     hero = _build_hero_metrics(fastq, counts, gapfill_adata)
+
+    def _hero_lbl(m: dict) -> str:
+        tip = m.get("tip", "").replace('"', "&quot;")
+        help_html = f' <span class="help-btn" data-tip="{tip}">?</span>' if tip else ""
+        return f'{m["label"]}{help_html}'
+
     hero_html = "".join(
         f'<div class="hero-metric"><div class="val">{m["value"]}</div>'
-        f'<div class="lbl">{m["label"]}</div>'
+        f'<div class="lbl">{_hero_lbl(m)}</div>'
         f'<div class="sub">{m["sub"]}</div></div>'
         for m in hero
     )
@@ -1014,9 +1140,9 @@ def make_html_report(
     def _rows(d: dict, help_dict: dict = {}) -> str:
         rows = []
         for k, v in d.items():
-            if isinstance(v, float):
+            if isinstance(v, (float, np.floating)):
                 v_str = f"{v:.4f}" if abs(v) < 1 else f"{v:,.2f}"
-            elif isinstance(v, (int,)) or (isinstance(v, str) and str(v).isdigit()):
+            elif isinstance(v, (int, np.integer)) or (isinstance(v, str) and str(v).isdigit()):
                 v_str = f"{int(v):,}"
             else:
                 v_str = str(v)
@@ -1032,10 +1158,45 @@ def make_html_report(
     else:
         plex_display = f"Plex {plex_id}"
         sample_meta_span = ""
+    ilab_meta_span = f"<span><b>iLab</b> {ilab}</span>" if ilab else ""
+
+    # Emit a flat metrics.csv mirror of the Metrics tab next to the report (P5.3),
+    # sharing the report's basename (e.g. IL-1234_CLL02.metrics.csv).
+    if output_file.name.endswith(".summary.html"):
+        metrics_csv_path = output_file.with_name(
+            output_file.name[: -len(".summary.html")] + ".metrics.csv"
+        )
+    else:
+        metrics_csv_path = output_file.with_name(f"{plex_id}.metrics.csv")
+    metrics_download = ""
+    try:
+        metric_rows = (
+            [("category", "metric", "value")]
+            + [("counts", k, v) for k, v in counts.items()]
+            + [("fastq", k, v) for k, v in fastq.items()]
+        )
+        csv_text = pd.DataFrame(
+            metric_rows[1:], columns=metric_rows[0]
+        ).to_csv(index=False)
+        # Still emit the sidecar file for pipeline consumers (P5.3) ...
+        pd.DataFrame(metric_rows[1:], columns=metric_rows[0]).to_csv(metrics_csv_path, index=False)
+        print(f"  Metrics CSV written → {metrics_csv_path}")
+        # ... but embed the same CSV as a base64 data URI so the download works
+        # even if the HTML is moved away from the sidecar file (self-contained).
+        b64 = base64.b64encode(csv_text.encode("utf-8")).decode("ascii")
+        metrics_download = (
+            f'<span><a href="data:text/csv;base64,{b64}" '
+            f'download="{metrics_csv_path.name}">⤓ metrics.csv</a></span>'
+        )
+    except Exception as e:
+        print(f"  Warning: could not build metrics.csv: {e}")
+
     html = _HTML_TEMPLATE.format(
         plex=plex_id,
         plex_display=plex_display,
         sample_meta_span=sample_meta_span,
+        ilab_meta_span=ilab_meta_span,
+        metrics_download=metrics_download,
         hero_html=hero_html,
         counts_rows=_rows(counts, _counts_help),
         fastq_rows=_rows(fastq, _fastq_help),

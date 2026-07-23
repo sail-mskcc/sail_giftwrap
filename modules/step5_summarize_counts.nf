@@ -24,12 +24,14 @@ process SUMMARIZE_COUNTS {
     script:
     def wta_arg      = wta ? "-wta '${wta}'" : ""
     def flatten_flag = params.flatten ? '--flatten' : ''
+    def ilab_arg     = params.ilab ? "--ilab '${params.ilab}'" : ""
     """
     python -m giftwrap.step5_summarize_counts \\
         --output            '${output_dir}' \\
         --overwrite \\
         --reads_per_gapfill ${params.reads_per_gapfill} \\
         --sample_id         '${sample_id}' \\
+        ${ilab_arg} \\
         ${wta_arg} \\
         ${flatten_flag}
     """
