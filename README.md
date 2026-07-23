@@ -75,12 +75,16 @@ arguments to the `giftwrap` or `giftwrap-count` commands:
 
 # Analyzing processed GIFT-seq data
 ## Files for analysis
-The final output file of the pipeline that should be used for analysis is the `counts.N.h5` file in the output directory,
-where `N` is the plex number (1 by default when the data is not multiplexed).
+The recommended output files for analysis are the `counts.N.h5ad` file (a standard
+[AnnData](https://anndata.readthedocs.io/) matrix) and/or the `flat_counts.N.tsv.gz` table
+(a self-contained per-UMI table with cell and probe barcodes already joined), where `N` is
+the plex number (1 by default when the data is not multiplexed). Both are standard formats
+that require no preprocessing. The custom `counts.N.h5` files are also produced and are used
+by the pipeline's internal filtering steps and the R/Seurat reader.
 Since gapfills are lower fidelity compared to standard WTA panels, it is highly recommended to run cellranger/spaceranger
 on the WTA panel, and provide its output to giftwrap with the `--wta` argument. This will allow giftwrap to filter the
-`counts.N.h5` file to only include valid cells based on the WTA panel called by cellranger/spaceranger. If provided,
-users should make use of the `counts.N.filtered.h5` file instead of the unfiltered version.
+counts to only include valid cells based on the WTA panel called by cellranger/spaceranger; the `counts.N.h5ad` reflects
+this filtered matrix when a WTA is provided.
 
 Additionally, there will be several generated files in the output directory with statistics which may be used for 
 quality control:
@@ -129,7 +133,14 @@ These data can be loaded into standard single-cell analysis tools such as scanpy
 in python, we provide utilities to deal with these files. But we do provide sample R code to read in the data as well.
 
 ### Python
-The giftwrap module may be directly imported into python to read the data into a scanpy/AnnData object:
+The `counts.N.h5ad` file is a standard AnnData object and can be loaded directly with
+scanpy/anndata — no giftwrap install required:
+```python
+import anndata as ad
+
+gapfill_adata = ad.read_h5ad("counts.N.h5ad")   # or counts.1.filtered content, already reflected
+```
+Equivalently, if you have giftwrap installed, you can read the custom `counts.N.h5` directly:
 ```python
 import giftwrap as gw
 

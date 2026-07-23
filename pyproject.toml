@@ -32,6 +32,7 @@ dependencies = [
     "sankeyflow>=0.4.1",
     "rich-argparse>=1.7.1",
     "prefixtrie>=1.1.0",
+    "plotly>=5.0",
 ]
 
 [project.urls]

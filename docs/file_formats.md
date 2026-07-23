@@ -35,6 +35,8 @@ These are files that are not typically used for working with GIFTwrap, but may b
 Following processing of GIFT-seq data, a typical run will produce an output directory with the following structure:
 ```
 output/
+├── counts.1.h5ad                  ← analysis-ready AnnData (start here)
+├── flat_counts.1.tsv.gz           ← per-UMI table, cell + probe barcodes joined
 ├── counts.1.filtered.h5  (if applicable)
 ├── counts.1.h5
 ├── counts.1.summary.tsv
@@ -55,10 +57,12 @@ output/
 ```
 
 ### Commonly Used Output Files
-The final collected output is a counts file which is a custom HDF5 file format inspired by the 10X Genomics `sample_filtered_feature_bc_matrix.h5` file. There are two versions of this file, filtered (if the WTA was passed) and unfiltered. Additionally, if the sample was multiplexed, you will notice that the file names have a suffix indicating the sample number (e.g. `counts.N.filtered.h5` where `N` is the probe barcode number).
+For most analyses you only need the `.h5ad` file (a matrix) or the `flat_counts` table (a flat per-UMI table) — both are standard formats that require no preprocessing. The custom `counts.N.h5` files described afterwards are retained mainly for the pipeline's internal filtering steps and for the R/Seurat reader. Where a sample was multiplexed, the file names carry a suffix indicating the sample number (e.g. `counts.N.h5ad` where `N` is the probe barcode number); by default `N` is the plex number, but the base name follows the iLab/sample label when those are supplied.
 
-- **counts.N.filtered.h5**: The final output file containing the counts of each probe for each cell, after filtering and quality control. See below for details on the structure of the h5 file.
-- **counts.N.h5**: The unfiltered counts file containing all probes and cells, without any quality control filtering applied.
+- **counts.N.h5ad** *(recommended)*: The analysis-ready count matrix as a standard [AnnData](https://anndata.readthedocs.io/) file, loadable directly with `anndata.read_h5ad()` / `scanpy.read_h5ad()`. Cells (with barcodes) are in `.obs`, probe–gapfill combinations in `.var` (indexed `probe|gapfill`, with probe/gene/`expected_gapfill`/`reference_gapfill` design columns), UMI counts in `.X`, and `total_reads` / `percent_supporting` in `.layers`. This reflects the final (filtered, if a WTA was passed) matrix. **Note: this is a standard AnnData `.h5ad`, not the custom `counts.N.h5` below — do not use `scanpy.read_10x_h5()`.**
+- **flat_counts.N.tsv.gz** *(recommended)*: A self-contained, human-readable per-UMI table — one row per collapsed UMI, with the nucleotide cell barcode already joined next to the probe barcode so no lookup against `barcodes.tsv.gz` is needed. Columns: `cell_barcode`, `probe_barcode` (plex/sample), `probe`, `gene`, `gapfill` (observed), `expected_gapfill` (designed variant), `reference_gapfill` (wild-type), `pcr_duplicates`, `percent_supporting`, `umi`. Comparing `gapfill` against `expected_gapfill` and `reference_gapfill` gives the per-cell allele call. A `flat_counts.N.filtered.tsv.gz` is produced when filtering is applied.
+- **counts.N.filtered.h5**: The final counts of each probe for each cell after filtering and quality control, in the custom HDF5 format described below. Consumed by the pipeline's filtering steps and the R/Seurat reader (`read_gf_h5.R`).
+- **counts.N.h5**: The unfiltered counts file in the custom HDF5 format, containing all probes and cells without any quality control filtering applied.
 * **fastq_metrics.tsv**: Summary statistics of the parsing of the given fastq files
     - `TOTAL_READS`: Total number of reads processed by the count step.
     - `PROBE_CONTAINING_READS`: Total number of reads that contained a valid probe (including umi/cell barcode).
@@ -99,7 +103,7 @@ These files are generated during processing of GIFT-seq data to allow for automa
 
 - **barcodes.tsv.gz**: A gzipped file containing the list of cell barcodes that were encountered in the run. The barcodes are used to collapse the strings into integer indices for efficient storage and processing.
 
-- **probe_reads.tsv.gz**: A gzipped file containing the raw counts of each probe for each cell post-gapfill correction. This file is used to store the raw counts before any filtering or quality control steps are applied. Note that probes and cells are represented as integer indices, not strings. Therefore, analysis requires joining this file with the `manifest.tsv` and `barcodes.tsv.gz` files to get the actual probe and cell names.
+- **probe_reads.tsv.gz**: A gzipped file containing the raw counts of each probe for each cell post-gapfill correction. This file is used to store the raw counts before any filtering or quality control steps are applied. Note that probes and cells are represented as integer indices, not strings — analysis therefore requires joining this file with `manifest.tsv` and `barcodes.tsv.gz` to recover the actual probe and cell names. **For most purposes prefer `flat_counts.N.tsv.gz`, which already contains this join** (cell barcode + probe barcode + probe/gene/gapfill), so no manual joining is needed.
 
 - **unmapped_reads_R{1,2}.fastq.gz**: If unmapped reads were requested to be stored, this file contains the unmapped reads from the R1 fastq file. This is useful for debugging or further analysis of unmapped reads.
 

@@ -202,7 +202,7 @@ Here are the remaining options that can be used with the `giftwrap` command:
 
 * `--allow_chimeras`: If specified, GIFTwrap will skip filtering out UMIs that pair to multiple probes within the same cell barcode. 
 
-* `--flatten`: If specified, in addition to the final .h5 file, GIFTwrap will also output a flattened TSV file containing the same mapped data, but human readable and easy to parse. The file will be named `flat_counts.{plex}.tsv.gz` in the output directory. This is the same as the intermediate `probe_reads.tsv.gz` file generated while running the pipeline, but manifest metadata is joined to the resultant output.
+* `--flatten` (on by default): GIFTwrap outputs a flattened, human-readable per-UMI TSV named `flat_counts.{plex}.tsv.gz` in the output directory, in addition to the `.h5`/`.h5ad` files. This contains the same mapped data as the intermediate `probe_reads.tsv.gz`, but with the cell barcode and manifest metadata (probe, gene, expected/reference gapfill) already joined so it is ready to analyze without further lookups. Pass `--flatten false` (or set `flatten = false` in the Nextflow config) to disable it.
 
 ## Common Examples of running GIFTwrap
 Basic single-plex run:

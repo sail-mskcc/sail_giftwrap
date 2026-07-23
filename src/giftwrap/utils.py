@@ -1479,40 +1479,55 @@ def maybe_gzip(file: Path | None, mode: Literal["r"] | Literal["w"] = "r"):
 
 def compile_flatfile(manifest_df: pd.DataFrame, probe_reads_file: str, barcode_list: list[str], plex: str, output: str):
     """
-    Flatten giftwrap data to a human readable tsv-based format.
+    Flatten giftwrap data to a self-contained, human-readable per-UMI TSV — one row per
+    collapsed UMI, with the cell barcode already joined next to the probe barcode so no
+    positional lookup against barcodes.tsv is needed.
+
+    Columns:
+      cell_barcode        the nucleotide cell barcode (joined from barcode_list by cell_idx)
+      probe_barcode       the plex / sample (probe) barcode label
+      probe               the probe name from the manifest
+      gene                the target gene (empty if the manifest has no gene column)
+      gapfill             the observed gapfill sequence
+      expected_gapfill    the designed (variant) gapfill sequence
+      reference_gapfill   the wild-type gapfill sequence
+      pcr_duplicates      number of reads collapsed into this UMI
+      percent_supporting  fraction of those reads agreeing with the called gapfill
+      umi                 the UMI sequence
+
     :param manifest_df: The manifest dataframe.
-    :param probe_reads_file: The probe reads file.
-    :param barcode_list: The index to barcode mapping. If a barcode is not present here, it will be dropped.
-    :param plex: The plex number.
-    :param output: The output with the following columns: cell barcode, LHS, RHS, probe_call, gapfill, pcr duplicates.
-        Where each row represents an individual umi.
+    :param probe_reads_file: The probe reads file (final step3 schema, 7 columns).
+    :param barcode_list: The cell_idx -> barcode mapping. If an index is out of range it is dropped.
+    :param plex: The plex number to emit rows for.
+    :param output: The output TSV(.gz) path.
     """
+    # Pre-index the manifest by its 'index' column for O(1) per-row lookups instead of a
+    # full DataFrame scan per line.
+    name_by_idx = dict(zip(manifest_df['index'], manifest_df['name']))
+    expected_by_idx = dict(zip(manifest_df['index'], manifest_df['gap_probe_sequence']))
+    reference_by_idx = dict(zip(manifest_df['index'], manifest_df['original_gap_probe_sequence']))
+    gene_by_idx = dict(zip(manifest_df['index'], manifest_df['gene'])) if 'gene' in manifest_df.columns else {}
+
     with maybe_gzip(probe_reads_file, 'r') as input_file, maybe_gzip(output, 'w') as output_file:
         # Skip the header
         next(input_file)
-        output_file.write(f"cell_barcode\tlhs_probe\trhs_probe\tcalled_probe\tgapfill\tpcr_duplicates\tpercent_supporting\tumi\n")
+        output_file.write("cell_barcode\tprobe_barcode\tprobe\tgene\tgapfill\texpected_gapfill\treference_gapfill\tpcr_duplicates\tpercent_supporting\tumi\n")
         for line in input_file:
             split = line.strip().split("\t")
-            if len(split) != 6:
+            if len(split) != 7:
                 continue
-            cell_idx, probe_idx, probe_bc_idx, umi, gapfill, umi_count, percent_supporting = line.strip().split("\t")
-            if int(cell_idx) > len(barcode_list) or int(probe_bc_idx) != plex:
+            cell_idx, probe_idx, probe_bc_idx, umi, gapfill, umi_count, percent_supporting = split
+            if int(cell_idx) >= len(barcode_list) or probe_bc_idx != plex:
                 continue
 
             cell_barcode = barcode_list[int(cell_idx)]
-            probe = manifest_df[manifest_df["index"] == int(probe_idx)].iloc[0]
-            if 'was_defined' in probe:
-                if probe['was_defined']:
-                    lhs_probe = probe['name']
-                    rhs_probe = probe['name']
-                else:
-                    lhs_probe = probe['name'].split("/")[0]
-                    rhs_probe = probe['name'].split("/")[1]
-            else:
-                lhs_probe = probe['name']
-                rhs_probe = probe['name']
+            probe_idx = int(probe_idx)
+            probe = name_by_idx.get(probe_idx, "")
+            gene = gene_by_idx.get(probe_idx, "")
+            expected_gapfill = expected_by_idx.get(probe_idx, "")
+            reference_gapfill = reference_by_idx.get(probe_idx, "")
 
-            output_file.write(f"{cell_barcode}\t{lhs_probe}\t{rhs_probe}\t{probe_bc_idx}\t{gapfill}\t{umi_count}\t{percent_supporting}\t{umi}\n")
+            output_file.write(f"{cell_barcode}\t{probe_bc_idx}\t{probe}\t{gene}\t{gapfill}\t{expected_gapfill}\t{reference_gapfill}\t{umi_count}\t{percent_supporting}\t{umi}\n")
 
 
 def _parse_barcodes_tsv(filepath: Path) -> np.ndarray[str]:
@@ -1705,6 +1720,34 @@ def filter_h5_file_by_barcodes(input_file: Path, output_file: Path, barcodes_lis
         mask = np.isin(barcodes, list(barcodes_set))
         barcode_indices = np.where(mask)[0]
 
+        # Defensive normalization (one-off: new-chemistry barcodes).
+        # Some chemistries store gapfill barcodes as <cell barcode><fixed constant>[-<gem>],
+        # which is longer than the WTA whitelist (e.g. 24bp + '-1' vs 16bp + '-1') and so
+        # matches nothing as-is. If the raw intersection is empty, trim each barcode's
+        # sequence (the part before any '-<gem>' suffix) down to the WTA sequence length
+        # and retry once. Standard 16bp runs match on the first pass and never reach here.
+        wta_seq_len = len(next(iter(barcodes_set)).split('-', 1)[0]) if barcodes_set else 0
+
+        def _normalize_to_wta(bcs):
+            out = []
+            for bc in bcs:
+                seq, sep, gem = str(bc).partition('-')
+                out.append(seq[:wta_seq_len] + sep + gem if sep else seq[:wta_seq_len])
+            return np.array(out)
+
+        barcodes_normalized = False
+        if len(barcode_indices) == 0 and barcodes_set:
+            normalized = _normalize_to_wta(barcodes)
+            normalized_indices = np.where(np.isin(normalized, list(barcodes_set)))[0]
+            if len(normalized_indices) > 0:
+                print(f"No gapfill barcodes matched the WTA whitelist directly; trimming to "
+                      f"WTA sequence length ({wta_seq_len}bp) — {len(normalized_indices)} of "
+                      f"{len(barcodes)} now match.")
+                barcodes = normalized
+                mask = np.isin(barcodes, list(barcodes_set))
+                barcode_indices = normalized_indices
+                barcodes_normalized = True
+
         # Check if we need to filter the data
         needs_padding = pad_matrix and len(barcodes_set) > len(barcode_indices)
         if len(barcode_indices) == len(barcodes) and not needs_padding:
@@ -1796,6 +1839,8 @@ def filter_h5_file_by_barcodes(input_file: Path, output_file: Path, barcodes_lis
                 if col == 'barcode':
                     if values.dtype.kind == 'S':
                         values = np.char.decode(values, 'utf-8')
+                    if barcodes_normalized:
+                        values = _normalize_to_wta(values)
                     meta_dict[col] = values
                 else:
                     try:
@@ -1860,19 +1905,31 @@ def filter_h5_file_by_pcr_dups(probe_reads_file: Path, counts_input: Path,
         original_cell_indices = f['matrix']['cell_index'][:]
         original_probe_indices = f['matrix']['probe_index'][:]
 
+        # Each matrix column is a unique (probe, gapfill) pair. Multiple gapfill
+        # columns of the same probe share one probe_index, so a column must be keyed
+        # by (probe_index, gapfill) — keying by probe_index alone would collapse every
+        # gapfill of a probe onto a single (wrong) column.
+        col_gapfills = f['matrix']['probe'][:, 1].astype(str)
+
         cell_idx_to_row = {cell_id: i for i, cell_id in enumerate(original_cell_indices)}
-        probe_idx_to_col = {probe_id: j for j, probe_id in enumerate(original_probe_indices)}
-        subtracted_counts = defaultdict(lambda: {'data': 0, 'total_reads': 0})
+        probe_gapfill_to_col = {
+            (int(pidx), gap): j
+            for j, (pidx, gap) in enumerate(zip(original_probe_indices, col_gapfills))
+        }
+        # Per (row, col): unique UMIs removed, their reads, and the sum of their
+        # per-UMI supporting fractions (needed to re-average percent_supporting).
+        subtracted_counts = defaultdict(lambda: {'data': 0, 'total_reads': 0, 'percent_sum': 0.0})
 
         with maybe_gzip(probe_reads_file, 'r') as pf:
             next(pf)  # Skip header
             for line in pf:
                 parts = line.rstrip().split('\t')
-                # Ensure the line has enough columns to parse
-                if len(parts) < 6:
+                # Final step3 schema: cell_idx, probe_idx, probe_barcode, umi,
+                # gapfill, pcr_duplicate_count, percent_supporting.
+                if len(parts) < 7:
                     continue
 
-                cell_idx, probe_idx, probe_barcode, _, _, umi_count = parts[:6]
+                cell_idx, probe_idx, probe_barcode, _, gapfill, umi_count, percent_supporting = parts[:7]
                 if probe_barcode != probe_bc:
                     continue
                 cell_idx = int(cell_idx)
@@ -1883,14 +1940,18 @@ def filter_h5_file_by_pcr_dups(probe_reads_file: Path, counts_input: Path,
                 if umi_count < reads_per_gapfill:
                     # Find the corresponding matrix row and column for this UMI
                     row = cell_idx_to_row.get(cell_idx)
-                    col = probe_idx_to_col.get(probe_idx)
+                    col = probe_gapfill_to_col.get((probe_idx, gapfill))
 
-                    # Only proceed if the cell and probe exist in the target H5 file
+                    # Only proceed if the cell and (probe, gapfill) exist in the target H5 file
                     if row is not None and col is not None:
-                        # Increment the unique UMI count for this cell/probe pair
-                        subtracted_counts[(row, col)]['data'] += 1
+                        entry = subtracted_counts[(row, col)]
+                        # Increment the unique UMI count for this cell/probe-gapfill pair
+                        entry['data'] += 1
                         # Add the PCR duplicates to the total reads count
-                        subtracted_counts[(row, col)]['total_reads'] += umi_count
+                        entry['total_reads'] += umi_count
+                        # Accumulate this UMI's supporting fraction so the remaining
+                        # UMIs can be re-averaged after removal.
+                        entry['percent_sum'] += float(percent_supporting)
 
         if not subtracted_counts:  # No changes needed
             print("All UMIs passed the filter; no changes made to the counts file.")
@@ -1902,11 +1963,21 @@ def filter_h5_file_by_pcr_dups(probe_reads_file: Path, counts_input: Path,
         original_percent_supporting = read_sparse_matrix(f['matrix'], 'percent_supporting').tolil()
 
         for (r, c), counts in subtracted_counts.items():
+            # data (unique UMIs) is the denominator of the percent_supporting mean,
+            # so capture it before subtracting.
+            old_data = int(original_data[r, c])
+            # percent_supporting is the mean per-UMI supporting fraction on a 0-1 scale.
+            # Reconstruct its running sum, drop the removed UMIs' contribution, then
+            # re-average over the UMIs that remain (keeping the same 0-1 scale/meaning).
+            old_percent_sum = float(original_percent_supporting[r, c]) * old_data
+            new_data = max(0, old_data - counts['data'])
+
             # Convert to int to avoid unsigned integer overflow, then apply max(0, ...)
-            original_data[r, c] = max(0, int(original_data[r, c]) - counts['data'])
+            original_data[r, c] = new_data
             original_total_reads[r, c] = max(0, int(original_total_reads[r, c]) - counts['total_reads'])
-            if original_total_reads[r, c] > 0:
-                original_percent_supporting[r, c] = (original_data[r, c] / original_total_reads[r, c]) * 100
+            if new_data > 0:
+                new_percent_sum = max(0.0, old_percent_sum - counts['percent_sum'])
+                original_percent_supporting[r, c] = new_percent_sum / new_data
             else:
                 original_percent_supporting[r, c] = 0.0
 
@@ -2080,6 +2151,44 @@ def read_h5_file(filename: str | Path) -> ad.AnnData:
             adata.obs['array_row'] = adata.obs['array_row'].astype(int)
 
     return adata
+
+
+def write_gapfill_h5ad(adata: ad.AnnData, path: str | Path) -> None:
+    """
+    Write a gapfill AnnData (as produced by read_h5_file) to a standard .h5ad file for
+    collaborators. This is the analysis-ready, scanpy-native deliverable — cell barcodes in
+    obs, probe/gapfill design in var (indexed as ``probe|gapfill``), total_reads /
+    percent_supporting / PCR-threshold matrices in layers.
+
+    :param adata: The gapfill AnnData object.
+    :param path: The output .h5ad path.
+    """
+    out = adata.copy()
+    # uns['probe_metadata'] is a pandas DataFrame; var already carries the same manifest
+    # columns, so store it as a dict-of-arrays to guarantee write_h5ad works across anndata
+    # versions (DataFrame-in-uns has historically been an edge case).
+    pm = out.uns.pop("probe_metadata", None)
+    if pm is not None:
+        out.uns["probe_metadata"] = {c: pm[c].to_numpy() for c in pm.columns}
+
+    # Newer anndata refuses to write pandas *nullable* string arrays (pd.StringArray)
+    # unless explicitly opted in, while older versions have neither the restriction nor the
+    # setting. Coerce string/object columns (and the obs/var indices) to plain object dtype
+    # so the file writes identically regardless of the installed anndata/pandas versions.
+    def _coerce_object(df: pd.DataFrame):
+        for col in df.columns:
+            if isinstance(df[col].dtype, pd.StringDtype) or df[col].dtype == object:
+                df[col] = df[col].astype(object)
+    _coerce_object(out.obs)
+    _coerce_object(out.var)
+    out.obs.index = pd.Index(out.obs.index.astype(object), name=out.obs.index.name)
+    out.var.index = pd.Index(out.var.index.astype(object), name=out.var.index.name)
+    try:  # belt-and-suspenders: opt in where the setting exists (no-op on older anndata)
+        ad.settings.allow_write_nullable_strings = True
+    except Exception:
+        pass
+
+    out.write_h5ad(path, compression="gzip")
 
 
 # def merge_anndatas(adata_expression: ad.AnnData, adata_gapfill: ad.AnnData) -> ad.AnnData:

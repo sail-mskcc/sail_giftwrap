@@ -40,12 +40,37 @@ params.fastq_dir   = null   // required: dir containing R1/R2 fastq.gz files
 
 workflow {
 
-    def FLEX_BARCODES = [
+    // Flex v1: 16 numeric probe barcodes hard-coded here.
+    def FLEX_V1_BARCODES = [
         '1':'ACTTTAGG', '2':'AACGGGAA', '3':'AGTAGGCT', '4':'ATGTTGAC',
         '5':'ACAGACCT', '6':'ATCCCAAC', '7':'AAGTAGAG', '8':'AGCTGTGA',
         '9':'ACAGTCTG', '10':'AGTGAGTG', '11':'AGAGGCAA', '12':'ACTACTCA',
         '13':'ATACGTCA', '14':'ATCATGTG', '15':'AACGCCGA', '16':'ATTCGGTT'
     ]
+
+    // Resolve the probe-barcode → sequence map for the selected technology.
+    // Flex-v2 / Flex-v2-R1 use 384 plate-well IDs (e.g. C-E08) loaded from the
+    // giftwrap whitelist (well_id → corrected sequence) so the map stays in sync
+    // with the Python side. Anything else falls back to the Flex v1 map.
+    def isFlexV2 = params.technology in ['Flex-v2', 'Flex-v2-R1']
+    // Flex-v2-R1 carries the probe barcode in R1, but CUTADAPT_PREPROCESS only
+    // searches R2 (-A). Running it here would discard every read, so refuse it
+    // rather than silently emitting empty per-sample FASTQs.
+    if (params.technology == 'Flex-v2-R1') {
+        error "technology 'Flex-v2-R1' is not supported by this pipeline: the probe barcode is in R1, but CUTADAPT_PREPROCESS filters on R2. Use --technology Flex-v2, or run giftwrap step 1 directly."
+    }
+    def FLEX_BARCODES = [:]
+    if (isFlexV2) {
+        def whitelist = file("${projectDir}/src/giftwrap/resources/flex-v2-384.txt")
+        if (!whitelist.exists()) error "Flex-v2 barcode whitelist not found: ${whitelist}"
+        whitelist.eachLine { line ->
+            def cols = line.split('\t')
+            if (cols.size() >= 3) FLEX_BARCODES[cols[2].trim()] = cols[1].trim()
+        }
+    } else {
+        FLEX_BARCODES = FLEX_V1_BARCODES
+    }
+    def BARCODE_HINT = isFlexV2 ? "384 plate-well IDs, e.g. A-A01 … D-H12" : "1-16"
 
     if (!params.samplesheet) error "Please provide --samplesheet <path/to/samplesheet.csv>"
     if (!params.fastq_dir)   error "Please provide --fastq_dir <dir>"
@@ -78,7 +103,7 @@ workflow {
         .combine(r2_ch)
         .map { sample, barcode, probes, wta, r1, r2 ->
             def barcodeSeq = FLEX_BARCODES[barcode]
-            if (!barcodeSeq) error "Barcode '${barcode}' not in Flex barcode map (valid: 1-16)"
+            if (!barcodeSeq) error "Barcode '${barcode}' not in ${params.technology} barcode map (valid: ${BARCODE_HINT})"
             tuple(sample, barcodeSeq, r1, r2, barcode, probes, wta)
         }
 
