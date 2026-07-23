@@ -1,0 +1,2422 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://clareaulab.github.io/giftwrap/tutorials/processing_giftseq_data/">
+      
+      
+        <link rel="prev" href="../getting_started/">
+      
+      
+        <link rel="next" href="../analyzing_giftseq_data/">
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.18">
+    
+    
+      
+        <title>Processing GIFT-Seq Data - GIFTwrap Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.7e37652d.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        
+        <link rel="stylesheet" href="../../assets/external/fonts.googleapis.com/css.49ea35f2.css">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_markdown_exec_pyodide.css">
+    
+      <link rel="stylesheet" href="../../assets/_markdown_exec_ansi.css">
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+      <link rel="stylesheet" href="../../termynal.css">
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/panzoom.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  <meta name="panzoom-theme" content="material">
+<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#processing-gift-seq-data" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="GIFTwrap Documentation" class="md-header__button md-logo" aria-label="GIFTwrap Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path fill="currentColor" d="M176 0c-26.5 0-48 21.5-48 48v208c0 26.5 21.5 48 48 48h64c26.5 0 48-21.5 48-48v-64h32c70.7 0 128 57.3 128 128s-57.3 128-128 128H32c-17.7 0-32 14.3-32 32s14.3 32 32 32h448c17.7 0 32-14.3 32-32s-14.3-32-32-32h-16.9c30.4-34 48.9-78.8 48.9-128 0-106-86-192-192-192h-32V48c0-26.5-21.5-48-48-48zm-56 352c-13.3 0-24 10.7-24 24s10.7 24 24 24h176c13.3 0 24-10.7 24-24s-10.7-24-24-24z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            GIFTwrap Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Processing GIFT-Seq Data
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/clareaulab/giftwrap" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path fill="currentColor" d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../installation/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Installation
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../file_formats/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  File Formats
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../getting_started/" class="md-tabs__link">
+          
+  
+  
+  Tutorials
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../cli/giftwrap/" class="md-tabs__link">
+          
+  
+  
+  CLI Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../reference/giftwrap/" class="md-tabs__link">
+          
+  
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../contributing/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Contributing
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="GIFTwrap Documentation" class="md-nav__button md-logo" aria-label="GIFTwrap Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path fill="currentColor" d="M176 0c-26.5 0-48 21.5-48 48v208c0 26.5 21.5 48 48 48h64c26.5 0 48-21.5 48-48v-64h32c70.7 0 128 57.3 128 128s-57.3 128-128 128H32c-17.7 0-32 14.3-32 32s14.3 32 32 32h448c17.7 0 32-14.3 32-32s-14.3-32-32-32h-16.9c30.4-34 48.9-78.8 48.9-128 0-106-86-192-192-192h-32V48c0-26.5-21.5-48-48-48zm-56 352c-13.3 0-24 10.7-24 24s10.7 24 24 24h176c13.3 0 24-10.7 24-24s-10.7-24-24-24z"/></svg>
+
+    </a>
+    GIFTwrap Documentation
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/clareaulab/giftwrap" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path fill="currentColor" d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Home
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Installation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../file_formats/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    File Formats
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    Tutorials
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Tutorials
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting_started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Getting Started
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    Processing GIFT-Seq Data
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    Processing GIFT-Seq Data
+    
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview-of-the-giftwrap-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      Overview of the GIFTwrap Pipeline
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#running-the-giftwrap-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      Running the GIFTwrap Pipeline
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Running the GIFTwrap Pipeline">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#specifying-input-sequencing-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      Specifying Input Sequencing Files
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#specifying-probeset-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      Specifying Probeset Files
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#specifying-output-directory" class="md-nav__link">
+    <span class="md-ellipsis">
+      Specifying Output Directory
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#typical-additional-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      Typical Additional Options
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#applying-giftwrap-to-multiplexed-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      Applying GIFTwrap to Multiplexed Data
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#running-giftwrap-on-visiumhd" class="md-nav__link">
+    <span class="md-ellipsis">
+      Running GIFTwrap on VisiumHD
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#running-giftwrap-on-10x-chromium-flex-v2" class="md-nav__link">
+    <span class="md-ellipsis">
+      Running GIFTwrap on 10x Chromium Flex v2
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dealing-with-experimental-design-complexities" class="md-nav__link">
+    <span class="md-ellipsis">
+      Dealing with Experimental Design Complexities
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Dealing with Experimental Design Complexities">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#scenario-1-extremely-long-gapfill-sequences" class="md-nav__link">
+    <span class="md-ellipsis">
+      Scenario 1: Extremely Long Gapfill Sequences
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scenario-2-intentionally-non-specific-probe-pairings" class="md-nav__link">
+    <span class="md-ellipsis">
+      Scenario 2: Intentionally Non-Specific Probe Pairings
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scenario-3-combining-multiple-sequencing-runs-with-different-read-lengths" class="md-nav__link">
+    <span class="md-ellipsis">
+      Scenario 3: Combining Multiple Sequencing Runs With Different Read Lengths
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scenario-4-low-number-of-mapped-reads" class="md-nav__link">
+    <span class="md-ellipsis">
+      Scenario 4: Low Number of Mapped Reads
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scenario-5-using-a-custom-single-cell-protocol" class="md-nav__link">
+    <span class="md-ellipsis">
+      Scenario 5: Using a Custom Single-Cell Protocol
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#additional-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      Additional Options
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-examples-of-running-giftwrap" class="md-nav__link">
+    <span class="md-ellipsis">
+      Common Examples of running GIFTwrap
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#conclusion" class="md-nav__link">
+    <span class="md-ellipsis">
+      Conclusion
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#giftwrap-workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      GIFTwrap Workflow
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../analyzing_giftseq_data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Analyzing GIFT-seq Data with GIFTwrap
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../spatial_giftseq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Spatial GIFT-Seq
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../imputation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Imputation of GIFT-Seq Data
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../seurat_integration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Seurat Integration
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../extending_giftwrap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Extending GIFTwrap
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    CLI Reference
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            CLI Reference
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/giftwrap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    giftwrap
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/giftwrap_count/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    giftwrap-count
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/giftwrap_correct_umis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    giftwrap-correct-umis
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/giftwrap_correct_gapfill/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    giftwrap-correct-gapfill
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/giftwrap_collect/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    giftwrap-collect
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/giftwrap_summarize/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    giftwrap-summarize
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/giftwrap_generate_r/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    giftwrap-generate-r
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/giftwrap_generate_tech/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    giftwrap-generate-tech
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/giftwrap_convert_probes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    giftwrap-convert-probes
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/giftwrap_revert_probes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    giftwrap-revert-probes
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    API Reference
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            API Reference
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_1" id="__nav_6_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code>giftwrap
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_1">
+            <span class="md-nav__icon md-icon"></span>
+            <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code>giftwrap
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/giftwrap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    giftwrap
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_1_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_1_2" id="__nav_6_1_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code>analysis
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_1_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_1_2">
+            <span class="md-nav__icon md-icon"></span>
+            <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code>analysis
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/giftwrap/analysis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    giftwrap.analysis
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/giftwrap/analysis/plots/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code>plots
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/giftwrap/analysis/preprocess/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code>preprocess
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/giftwrap/analysis/spatial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code>spatial
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/giftwrap/analysis/tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code>tools
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/giftwrap/html_report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code>html_report
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/giftwrap/misc_scripts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code>misc_scripts
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/giftwrap/pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code>pipeline
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/giftwrap/step1_count_gapfills/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code>step1_count_gapfills
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/giftwrap/step2_correct_umis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code>step2_correct_umis
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/giftwrap/step3_correct_gapfill/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code>step3_correct_gapfill
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/giftwrap/step4_collect_counts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code>step4_collect_counts
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/giftwrap/step5_summarize_counts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code>step5_summarize_counts
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/giftwrap/utils/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    <code class="doc-symbol doc-symbol-nav doc-symbol-module"></code>utils
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Contributing
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="processing-gift-seq-data">Processing GIFT-Seq Data</h1>
+<p>The <a href="../../cli/giftwrap/"><code>giftwrap</code></a> command is the main entry point for processing GIFT-seq data, it will run the full FastQ-to-counts matrix pipeline, including basic quality control. This guide will describe how to use <code>giftwrap</code> and how it works under the hood. For experimental considerations, please refer to the <a href="...">GIFT-seq publication</a> for more details. Note that some QC metrics require that GIFTwrap was installed using the <code>analysis</code> extra as described in the <a href="../../installation/">installation guide</a> and VisiumHD processing requires <code>spaceranger</code> from 10X Genomics to be installed in your system PATH.</p>
+<h2 id="overview-of-the-giftwrap-pipeline">Overview of the GIFTwrap Pipeline</h2>
+<p>The <code>giftwrap</code> command is actually just an automated sequence of commands that will run each individual step of the GIFT-seq processing pipeline. As a result, it is possible to intervene and run each step individually, however, this is not typically necessary. For more details, refer to the <a href="../../cli/giftwrap/">GIFTwrap CLI documentation</a>.</p>
+<p>The <code>giftwrap</code> pipeline will run the following major steps:</p>
+<ol>
+<li><strong>Mapping</strong>: Given a set of FastQ files, we will attempt to identify reads that are valid 10X reads. These reads will then be mapped to the specified probe list. The output is a flat list of parsed cell barcodes, umis, probe barcodes, probe ids, and gapfill sequences. When mapping the cell barcodes, if cellranger was already run on the whole transcriptome data, cell barcodes will only be mapped to observed transcriptome cell barcodes. If cellranger was not run, the full 10X cell barcode whitelist will be used instead. At this point, the data has not been corrected for UMI or gapfill sequencing errors, thus there will be duplicates in the output when multiple reads map to the same cell barcode, UMI, and probe barcode. Mapping is done by testing each read against our cell barcode and probe whitelists, allowing an error rate of ~10% (i.e. 1 nucleotide error per 10 bases). The output of this step is a flat list of parsed reads, which is then used for further processing.</li>
+<li><strong>UMI Correction</strong>: Once the universe of mapped reads is obtained, we will correct UMIs for both sequencing errors and PCR chimeras. Since UMIs have no explicit whitelist, we assume that for each cell barcode, there is a single probe that a given UMI maps to. We also assume that UMIs have a typical error rate of up to 10%. Correction is done by sorting probe/UMI pairs by the number of reads that map to them. Going down the list, we will correct a UMI if it is within 10% of a more abundant UMI, otherwise we assume it is a unique UMI. Finally, where there are multiple probes a corrected UMI maps to, we will filter out all reads that do not map to the most abundant probe/UMI pair for that UMI.</li>
+<li><strong>Gapfill Correction</strong>: Once all reads have been corrected for technical sequences, we now need to correct the gapfill sequences. Since each cell barcode/UMI/probe tuple should have a single gapfill sequence, we can correct the gapfill sequences by picking the most abundant gapfill sequence across all reads that map to the same cell barcode/UMI/probe tuple. If there is no immediate consensus for each set of reads, we will group the observed sequences by their length, and then pick the most abundant sequence length, removing all reads that do not match the most abundant sequence length (therefore avoiding the need to perform a gappy alignment). Finally, for each position in the gapfill sequence, we will model the most likely nucleotide at that position by computing the probability of correct assignment (by PHRED score) across the number of reads that map to the same nucleotide at the given position. For quality control, we record the number of reads that support the corrected gapfill sequence. </li>
+<li><strong>Counting UMIs</strong>: The final processing step is to demultiplex counts by probe barcode (if multiplexed), followed by the counting of distinct UMIs for each cell barcode. The pipeline simply first scans all possible probe/gapfill sequence combinations (defining the number of features in the final counts matrix), then for each cell barcode: count the number of distinct UMIs that map to each probe/gapfill sequence combination. While collecting this data, we also collect the metadata and output a set of counts matrices (n_cells x n_features) to describe both counts and the number of supporting reads for each cell barcode/feature combination. The output is an h5 file, which has a data structure similar to that used by cellranger. This file can be loaded using the <code>giftwrap</code> Python API at this point. </li>
+<li><strong>Quality Control</strong>: Finally, various quality control metrics are computed to quantify the quality of the data and its efficiency at genotyping. Note that if cellranger was run on the whole transcriptome data, the quality control metrics will be computed only for the observed transcriptome cell barcodes with a filtered h5 file containing only those cell barcodes. Furthermore, additional metrics will be computed to compare the capture rate of genes observed in the transcriptome data to the genes observed in the GIFT-seq data. </li>
+</ol>
+<p>For a more detailed overview of GIFTwrap workflow, <a href="./#giftwrap-workflow">refer to the GIFTwrap workflow below</a>.</p>
+<h2 id="running-the-giftwrap-pipeline">Running the GIFTwrap Pipeline</h2>
+<p>The recommended way to run the GIFTwrap pipeline is through the <a href="../../cli/giftwrap/"><code>giftwrap</code></a> command, which automatically runs all the previously described steps in sequence. View the <a href="../../cli/">GIFTwrap CLI documentation</a> for more details on how to run each step individually and their associated options.</p>
+<div class="termy" data-termynal data-ty-macos data-ty-title="bash"><span data-ty="input" data-ty-prompt="$">giftwrap --help</span><span data-ty>Usage: giftwrap [-h] [--version] --probes PROBES [--trim_probes TRIM_PROBES]<br>                [-r1 READ1] [-r2 READ2] [--project PROJECT]<br>                [--multiplex MULTIPLEX] [--barcode BARCODE]<br>                [--unmapped_reads UNMAPPED_READS] --output OUTPUT [-c CORES]<br>                [--technology {Flex,Flex-v2,Flex-v2-R1,VisiumHD,Visium-v1,Visium-v2,Visium-v3,Visium-v4,Visium-v5,Custom}]<br>                [--tech_def TECH_DEF] [--cellranger_output CELLRANGER_OUTPUT]<br>                [--overwrite] [--skip_constant_seq] [--allow_any_combination]<br>                [--flatten] [--allow_chimeras] [--r1_length R1_LENGTH]<br>                [--r2_length R2_LENGTH] [--flexible_start_mapping]<br>                [--expected_gap_length EXPECTED_GAP_LENGTH]<br>                [--reads_per_gapfill READS_PER_GAPFILL]<br>                [--max_pcr_thresholds MAX_PCR_THRESHOLDS]<br><br>Run the complete pipeline to generate gapfill counts data. Note that this is<br>slightly opinionated for simplicity. For more control, run the individual<br>scripts one by one (giftwrap-count, giftwrap-correct-umis,<br>giftwrap-correct-gapfill, giftwrap-collect, giftwrap-summarize).<br><br>Options:<br>  -h, --help            show this help message and exit<br>  --version, -v         Show the version of the GIFTwrap pipeline.<br>  --probes, -p PROBES   Path to the generated gap-filling probe set file.<br>  --trim_probes TRIM_PROBES<br>                        If &gt; 0, trim the probes to the given length before<br>                        mapping. This can be useful if the probes have a<br>                        common sequence at the end that is not expected to be<br>                        sequenced. If the probe file contains expected<br>                        gapfills, this will be used to inform the trimming.<br>  -r1, --read1 READ1    Path to the R1 file. Either the fastq/fastq.gz file,<br>                        or a file prefix to find a set of files.<br>  -r2, --read2 READ2    Path to the R2 file. Either the fastq/fastq.gz file,<br>                        or a file prefix to find a set of files.<br>  --project PROJECT     The generic name for the project. Used to<br>                        automatically find R1 and R2 fastq files. Mutually<br>                        exclusive with -r1 and -r2 arguments.<br>  --multiplex, -m MULTIPLEX<br>                        The number of probes to be multiplexed in the Flex run<br>                        with the same probe set. Mutually exclusive with<br>                        --barcode. Defaults to single plex.<br>  --barcode, -b BARCODE<br>                        The barcode(s) to use for the Flex run. Can be<br>                        provided multiple times. Mutually exclusive with<br>                        --multiplex. Defaults to BC01 in FlexV1 or A01 in<br>                        Flex-v2 when omitted.<br>  --unmapped_reads UNMAPPED_READS<br>                        If provided, unmapped reads are written to the file<br>                        prefix given.<br>  --output, -o OUTPUT   The name of the output directory.<br>  -c, --cores CORES     The number of cores to use. Less than 1 defaults to<br>                        the number of available cores.<br>  --technology, -e {Flex,Flex-v2,Flex-v2-R1,VisiumHD,Visium-v1,Visium-v2,Visium-v3,Visium-v4,Visium-v5,Custom}<br>                        The technology used to generate the gap-filling<br>                        probes. Default is Flex.<br>  --tech_def TECH_DEF   The path to the technology definition python file to<br>                        import. Must include a single class definition that<br>                        inherits from TechnologyFormatInfo.<br>  --cellranger_output, -wta CELLRANGER_OUTPUT<br>                        Path to either the filtered_feature_bc_matrix.h5 or<br>                        the sample_filtered_feature_bc_matrix folder from<br>                        CellRanger. Can be specified multiple times to merge<br>                        multiple samples if multiplex (in order of the<br>                        counts.N.h5 files is sorted by N).<br>  --overwrite, -f       Overwrite the output directory if it already exists.<br>  --skip_constant_seq   If the technology (i.e. Flex) has a constant sequence<br>                        in the probe design, do not filter reads for missing<br>                        it. This is useful for reads that are too short to<br>                        capture the full probes.<br>  --allow_any_combination<br>                        Allow any combination of probes to be counted. By<br>                        default, only the probes that are in the gapfill set<br>                        are counted.<br>  --flatten             After processing, save a processed, flattened version<br>                        of the data as a gzipped tsv file. Note that this is<br>                        an inefficient storage format for large datasets.<br>  --allow_chimeras, -ac<br>                        Allow chimeric gapfills. If unset, umis that occur<br>                        multiple times per cell will be dropped except for the<br>                        most common probe. If set, there is no collapsing.<br>  --r1_length R1_LENGTH<br>                        The length of the R1 read. Can optimize the probe<br>                        mapping speed and accuracy.<br>  --r2_length R2_LENGTH<br>                        The length of the R2 read. Can optimize the probe<br>                        mapping speed and accuracy.<br>  --flexible_start_mapping<br>                        If set, we no longer assume that the R2 read starts<br>                        with the LHS probe and that there may be an insertion<br>                        that would need to be trimmed.<br>  --expected_gap_length EXPECTED_GAP_LENGTH<br>                        Override the computed expected gap length. If not<br>                        provided, the gap length will attempt to be inferred<br>                        from the expected gap sequence in the probe inputs<br>                        file. This value is used to allow for more lenient<br>                        parsing when the R2 length is not enough to fully<br>                        sequence the RHS of all probes.<br>  --reads_per_gapfill READS_PER_GAPFILL<br>                        The minimum number of reads supporting a gapfill to<br>                        include it in the final counts. Default is 0 (no<br>                        filtering).<br>  --max_pcr_thresholds MAX_PCR_THRESHOLDS<br>                        The maximum number of PCR duplicate thresholds to<br>                        consider when storing various layers when collecting<br>                        counts. Default is 10.<br><br></span></div>
+<p>The pipeline contains many different options, but the most important ones are simply the flags to specify the input FastQ and probeset files and the output destination directory. These options are described below:</p>
+<h3 id="specifying-input-sequencing-files">Specifying Input Sequencing Files</h3>
+<p>GIFTwrap expects paired-end FastQ files as input, which should be sequenced similarly to 10X Genomics fixed single-cell data. The sequencing data can be provided in one of the following ways:</p>
+<ul>
+<li>Explicit FastQ files: If you have a single pair of FastQ files, you can specify them using the <code>-r1</code> and <code>-r2</code> options, which specify the read 1 and read 2 FastQ files, respectively. For example:</li>
+</ul>
+<div class="termy" data-termynal data-ty-macos data-ty-title="bash"><span data-ty="input" data-ty-prompt="$">giftwrap -r1 /path/to/sample_R1.fastq.gz -r2 /path/to/sample_R2.fastq.gz ...</span><span data-ty></span></div>
+
+<ul>
+<li>FastQ file prefix: To simplify FastQ file specification you can use the <code>--project</code> option, which attempts to automatically find the FastQ files with a given prefix and with suffixes of either <code>_R{1,2}.fastq.gz</code> or <code>_R{1,2}.fastq</code>. This is therefore the recommended way to specify FastQ files if multiple lanes were used to sequence the same sample. For example: </li>
+</ul>
+<div class="termy" data-termynal data-ty-macos data-ty-title="bash"><span data-ty="input" data-ty-prompt="$">giftwrap --project /path/to/sample_project ...</span><span data-ty></span></div>
+
+<p>Would automatically match files with wildcards similar to bash: <code>/path/to/sample_project*R1*.f*q*</code> and <code>/path/to/sample_project*R2*.f*q*</code>.</p>
+<h3 id="specifying-probeset-files">Specifying Probeset Files</h3>
+<p>The probeset file is either comma-separated, tab-separated, or an excel file describing the probe names and their "left-hand-side" (LHS) and "right-hand-side" (RHS) sequences. The LHS and RHS sequences refer to the sequences that would be read in by the sequencer (i.e. the reverse-complemented sequences of the targeted transcripts). This follows the terminology used by 10X Genomics in their Flex and Visium protocols. The probeset file has a header and the following columns described in the following table:</p>
+<table>
+<thead>
+<tr>
+<th>Column Name</th>
+<th>Description</th>
+<th>Required?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>name</code></td>
+<td>The name of the probe. By convention this should follow the format of: <code>gene_name HGSVc</code>. For example: <code>TP53 c.215G&gt;A</code>.</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><code>lhs_probe</code></td>
+<td>The left-hand side sequence of the probe, this is the reverse complement of the right side of your gene sequence of interest.</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><code>rhs_probe</code></td>
+<td>The right-hand side sequence of the probe, this is the reverse complement of the left side of your gene sequence of interest.</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><code>gap_probe_sequence</code></td>
+<td>The expected "mutant" sequence of the gapfill sequenced (i.e. the reverse complement of the region of interest). This is only used to annotate outputs and is not involved in default analysis.</td>
+<td>No</td>
+</tr>
+<tr>
+<td><code>original_gap_probe_sequence</code></td>
+<td>The "wild-type" sequence of the gapfill probe (i.e. the reverse complement of the region of interest), this is only used to annotate outputs and is not involved in default analysis.</td>
+<td>No</td>
+</tr>
+<tr>
+<td><code>gene</code></td>
+<td>The gene name that is associated with the probe. If not provided, GIFTwrap will attempt to infer this from the <code>name</code> column.</td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<p>Note that the name, lhs_probe, and rhs_probe columns are required and the additional columns are optional but can aid in downstream analysis. The probeset file is specified using the <code>--probes</code> option, for example:</p>
+<div class="termy" data-termynal data-ty-macos data-ty-title="bash"><span data-ty="input" data-ty-prompt="$">giftwrap --probes /path/to/probes.csv ...</span><span data-ty></span></div>
+
+<h3 id="specifying-output-directory">Specifying Output Directory</h3>
+<p>The final required option is the output directory. This is where all final and intermediate files will be saved. Additionally, this directory will contain sentinel files that indicate completion of each step of the pipeline, allowing for you to resume processing from the last completed step when re-running the pipeline. The output is specified using the <code>--output</code> option, for example:</p>
+<div class="termy" data-termynal data-ty-macos data-ty-title="bash"><span data-ty="input" data-ty-prompt="$">giftwrap --output /path/to/output_directory ...</span><span data-ty></span></div>
+
+<h3 id="typical-additional-options">Typical Additional Options</h3>
+<p>In addition to the required options, typically you will want to improve the performance and quality of the pipeline by specifying additional options. </p>
+<p>We recommend setting the <code>--cores</code> option to allow the pipeline to use multiple cores to speed up processing. Specifying <code>--cores 0</code> will use all available cores detected on the system. </p>
+<p>Additionally, if you have run cellranger on the whole transcriptome data prior to running GIFTwrap, specifying the <code>--cellranger_output</code> option will allow GIFTwrap to prune the cell barcode list to only include cell barcodes that were observed in the output of cellranger as well as enabling additional quality control metrics to check the efficiency of the GIFT-seq capture of genotypes. The cellranger output can either be specified as the path to the final sample_filtered_feature_bc_matrix .h5 file (e.g. <code>--cellranger_output /path/to/sample_filtered_feature_bc_matrix.h5</code>) or as the path to the directory containing the cellranger counts data (including the counts matrix, cell barcodes, and feature names. e.g. <code>--cellranger_output /path/to/cellranger_output/</code>).</p>
+<p>These two options are highly recommended:</p>
+<div class="termy" data-termynal data-ty-macos data-ty-title="bash"><span data-ty="input" data-ty-prompt="$">giftwrap --cores 0 --cellranger_output /path/to/cellranger_output/ ...</span><span data-ty></span></div>
+
+<h3 id="applying-giftwrap-to-multiplexed-data">Applying GIFTwrap to Multiplexed Data</h3>
+<p>As is common to Flex-based experiments, GIFTwrap supports multiplexed data by splitting reads according to probe barcodes. This can be done by one of two ways:</p>
+<ol>
+<li><strong>Using the <code>--multiplex</code> option</strong>: This option tells GIFTwrap to process multiplexed data by processing everything at the same time and splitting counts into different final output matrices in the last steps of the pipeline. For Flex, this automatically supports up to 16-plex experiments. For example:</li>
+</ol>
+<div class="termy" data-termynal data-ty-macos data-ty-title="bash"><span data-ty="input" data-ty-prompt="$">giftwrap --multiplex 16 ...</span><span data-ty></span></div>
+
+<ol>
+<li><strong>Specifying the probe barcode</strong>: Instead of processing all multiplexed data at once, by specifying <code>--barcode</code> to a named barcode value (e.g. <code>BC01</code> for Flex v1, <code>A01</code> for Flex-v2), GIFTwrap will automatically ignore reads that do not match the given probe barcode. This flag can be passed multiple times to include several barcodes. When omitted, it defaults to <code>BC01</code> for Flex v1 or <code>A01</code> for Flex-v2. Note that you will notice that many reads do not map, this is expected due to the skipping of reads that do not match the given probe barcode. An example of this option is:</li>
+</ol>
+<div class="termy" data-termynal data-ty-macos data-ty-title="bash"><span data-ty="input" data-ty-prompt="$">giftwrap --barcode BC01 ...</span><span data-ty></span></div>
+
+<h3 id="running-giftwrap-on-visiumhd">Running GIFTwrap on VisiumHD</h3>
+<p>GIFTwrap has built-in support for VisiumHD data. Most processing steps are similar, however cell barcode mapping/correction is done distinctly by allowing indels, allowing greater error rates, and by parsing the proprietary experiment design file provided by spaceranger. Therefore, it is <em>required</em> that spaceranger is installed on your system PATH. Note that non-HD Visium data is technically supported, but it has not been tested/validated. </p>
+<p>To perform VisiumHD processing, you must specify the <code>--technology</code> option as <code>VisiumHD</code>, Giftwrap will then automatically scan the spaceranger installation for additional required data files to run the pipeline. </p>
+<div class="admonition info">
+<p class="admonition-title">Info</p>
+<p>VisiumHD data processing takes significantly longer than standard Flex-based experiments due to the high complexity of the spatial barcode design and its unique correction requirements. Consider increasing the number of cores to speed up processing.</p>
+</div>
+<div class="termy" data-termynal data-ty-macos data-ty-title="bash"><span data-ty="input" data-ty-prompt="$">giftwrap --technology VisiumHD --cores 0 ...</span><span data-ty></span></div>
+
+<h3 id="running-giftwrap-on-10x-chromium-flex-v2">Running GIFTwrap on 10x Chromium Flex v2</h3>
+<p>GIFTwrap supports 10x Chromium Flex v2 kits via two technology options:</p>
+<ul>
+<li><strong><code>Flex-v2</code></strong>: Use this for standard 10x Chromium Flex v2 experiments where the sample barcode is read on R2.</li>
+<li><strong><code>Flex-v2-R1</code></strong>: Use this variant when the sample barcode is read on R1 (e.g. certain library configurations).</li>
+</ul>
+<p>The default barcode for Flex-v2 is <code>A01</code> (rather than <code>BC01</code> used by Flex v1). To specify it explicitly:</p>
+<div class="termy" data-termynal data-ty-macos data-ty-title="bash"><span data-ty="input" data-ty-prompt="$">giftwrap --technology Flex-v2 --barcode A01 --cores 0 ...</span><span data-ty></span></div>
+
+<h3 id="dealing-with-experimental-design-complexities">Dealing with Experimental Design Complexities</h3>
+<p>When running GIFTwrap with atypical experimental designs (for example, dealing with extremely long gapfill sequences), you may specify several additional options to help GIFTwrap process the data correctly. These options are broken down by several common scenarios.</p>
+<div class="admonition info">
+<p class="admonition-title">Info</p>
+<p>There may be additional options not included in the <code>giftwrap</code> pipeline wrapper, but may be included in each individual step. To run them individually and see their options, refer to the <a href="../../cli/">GIFTwrap CLI documentation</a>.</p>
+</div>
+<h4 id="scenario-1-extremely-long-gapfill-sequences">Scenario 1: Extremely Long Gapfill Sequences</h4>
+<p>GIFTwrap can typically handle long gapfill sequences, however, you may run into issues with library sequencing when using standard 10X Flex-based protocols. Specifically, the R2 length may not be sufficient to cover the expected constant sequence in each probe when the gapfill+probe sequence is longer than 60 bases. GIFTwrap normally requires the constant sequence to be present when possible in order to improve data quality. However, this can be disabled with a limited expected reduction of data quality by specifying the <code>--skip_constant_seq</code> flag. This is because the constant sequence is typically at the end of the R2 read. </p>
+<div class="termy" data-termynal data-ty-macos data-ty-title="bash"><span data-ty="input" data-ty-prompt="$">giftwrap --skip_constant_seq ...</span><span data-ty></span></div>
+
+<h4 id="scenario-2-intentionally-non-specific-probe-pairings">Scenario 2: Intentionally Non-Specific Probe Pairings</h4>
+<p>Normally, GIFTwrap requires that probes are paired according to the provided probeset file explicitly. GIFTwrap also supports allowing multiple components to be paired to different probes. However, if you have a complex probe design where it is unclear which probes may be paired with each other (i.e. due to high sequence similarity), you can pass the <code>--allow_any_combination</code> flag. This will make GIFTwrap fill in all possible combinations of probe pairs in its final output, and allow any pairing when mapping. The final output will contain an additional feature metadata column, <code>was_defined</code> indicating whether the probe pair was defined in the original probeset file or not. </p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>This option will lead to slower processing times and may produce inconsistent mapping results. Ensure that you are careful about validating the final output of the pipeline. </p>
+</div>
+<div class="termy" data-termynal data-ty-macos data-ty-title="bash"><span data-ty="input" data-ty-prompt="$">giftwrap --allow_any_combination ...</span><span data-ty></span></div>
+
+<h4 id="scenario-3-combining-multiple-sequencing-runs-with-different-read-lengths">Scenario 3: Combining Multiple Sequencing Runs With Different Read Lengths</h4>
+<p>If you have multiple sequencing runs with different read lengths, GIFTwrap may produce inconsistent mapping results. For example, if R1 is shorter in one run than the other, UMI correction and parsing will be completely inconsistent. To avoid this, it is recommended that the R1 read length and/or the R2 read length is explicitly specified using the <code>--r1_length</code> and <code>--r2_length</code> options, respectively. Modifying these lengths will typically adjust UMI and constant sequence parsing, respectively. </p>
+<p>Example of varying R1 lengths:</p>
+<div class="termy" data-termynal data-ty-macos data-ty-title="bash"><span class="termynal-comment" data-ty># If one run has R1 length of 26 and another has R1 length of 28:</span><span data-ty="input" data-ty-prompt="$">giftwrap --r1_length 26 ...</span><span data-ty>&gt;&gt;&gt; All R1 reads will now be shortened to 26 bases when running the pipeline.<br></span></div>
+
+<p>Example of varying R2 lengths:</p>
+<div class="termy" data-termynal data-ty-macos data-ty-title="bash"><span class="termynal-comment" data-ty># If one run has R2 length of 60 and another has R2 length of 70:</span><span data-ty="input" data-ty-prompt="$">giftwrap --r2_length 60 --skip_constant_seq ...</span><span data-ty>&gt;&gt;&gt; All R2 reads will now be shortened to 60 bases when running the pipeline. Note that we skip the constant sequence parsing step to prevent filtering out reads without the constant sequence.<br></span></div>
+
+<h4 id="scenario-4-low-number-of-mapped-reads">Scenario 4: Low Number of Mapped Reads</h4>
+<p>Many different factors can lead to a low number of reads. The best way to understand the issue is to examine the <code>fastq_metrics.tsv</code> file in the output directory to see why reads were not mapped. Additionally, you can specify the <code>--unmapped_reads</code> option to save unmapped reads to a separate set of FastQ files which can then be manually inspected. This option accepts a filename prefix which will be used to save the unmapped reads. For example:</p>
+<div class="termy" data-termynal data-ty-macos data-ty-title="bash"><span data-ty="input" data-ty-prompt="$">giftwrap --unmapped_reads my_unmapped_reads ...</span><span data-ty>&gt;&gt;&gt; This will save unmapped reads to files named my_unmapped_reads_R1.fastq.gz and my_unmapped_reads_R2.fastq.gz to your output directory.<br></span></div>
+
+<h4 id="scenario-5-using-a-custom-single-cell-protocol">Scenario 5: Using a Custom Single-Cell Protocol</h4>
+<p>If you are using a non-supported single-cell protocol, follow the <a href="../extending_giftwrap/">Extending GIFTwrap guide</a> to create a custom protocol. Note that when creating a custom protocol, you must set the <code>--technology</code> option to <code>Custom</code> and provide the required <code>--tech_def</code> option for your custom protocol.</p>
+<h3 id="additional-options">Additional Options</h3>
+<p>Here are the remaining options that can be used with the <code>giftwrap</code> command:</p>
+<ul>
+<li>
+<p><code>--flexible_start_mapping &lt;N&gt;</code>: If specified, GIFTwrap will allow for some insertion/deletions related to technical artifacts in sequencing at the start of R2.</p>
+</li>
+<li>
+<p><code>--overwrite</code>: If specified, GIFTwrap will overwrite any existing output files in the output directory. This is useful if you want to re-run the pipeline without having to delete the output directory first.</p>
+</li>
+<li>
+<p><code>--allow_chimeras</code>: If specified, GIFTwrap will skip filtering out UMIs that pair to multiple probes within the same cell barcode. </p>
+</li>
+<li>
+<p><code>--flatten</code>: If specified, in addition to the final .h5 file, GIFTwrap will also output a flattened TSV file containing the same mapped data, but human readable and easy to parse. The file will be named <code>flat_counts.{plex}.tsv.gz</code> in the output directory. This is the same as the intermediate <code>probe_reads.tsv.gz</code> file generated while running the pipeline, but manifest metadata is joined to the resultant output.</p>
+</li>
+</ul>
+<h2 id="common-examples-of-running-giftwrap">Common Examples of running GIFTwrap</h2>
+<p>Basic single-plex run:</p>
+<div class="termy" data-termynal data-ty-macos data-ty-title="bash"><span data-ty="input" data-ty-prompt="$">giftwrap -r1 /path/to/sample_R1.fastq.gz -r2 /path/to/sample_R2.fastq.gz --probes /path/to/probes.csv --output /path/to/output_directory --cores 0</span><span data-ty></span></div>
+
+<p>Basic 4-plex run:</p>
+<div class="termy" data-termynal data-ty-macos data-ty-title="bash"><span data-ty="input" data-ty-prompt="$">giftwrap --project /path/to/files/sample_id --probes /path/to/probes.csv --output /path/to/output_directory --cores 0 --multiplex 4</span><span data-ty></span></div>
+
+<p>Basic VisiumHD run:</p>
+<div class="termy" data-termynal data-ty-macos data-ty-title="bash"><span data-ty="input" data-ty-prompt="$">giftwrap --project /path/to/files/sample_id --probes /path/to/probes.csv --output /path/to/output_directory --cores 0 --technology VisiumHD</span><span data-ty></span></div>
+
+<h2 id="conclusion">Conclusion</h2>
+<p>The <code>giftwrap</code> command provides a powerful and flexible way to process GIFT-seq data. Additional options and greater customization can be achieved by running the individual steps of the pipeline manually, but this pipeline should cover most common use cases. For more details on the experimental design and considerations, please refer to the <a href="...">GIFT-seq publication</a>. If you have any questions or issues, don't hesitate to reach out via the <a href="https://github.com/clareaulab/giftwrap">GIFTwrap GitHub repository</a>.</p>
+<h2 id="giftwrap-workflow">GIFTwrap Workflow</h2>
+<p>Below is a high-level overview of the entire GIFTwrap workflow, which is automatically executed via the <code>giftwrap</code> command.
+This diagram illustrates the main steps involved in processing GIFT-seq data, from reading the FastQ files to generating the final counts matrix.</p>
+<div class="panzoom-box" data-key="none" id="panzoom0" oncontextmenu="return false;">
+    <div class="panzoom-info-box panzoom-info-box-top">
+Use mouse to pan and zoom
+</div>
+    <nav class="panzoom-nav panzoom-top-nav panzoom-nav-infobox-top">
+    <button class="panzoom-reset panzoom-button">
+    <svg class="panzoom-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+        <path d="M125.7 160l50.3 0c17.7 0 32 14.3 32 32s-14.3 32-32 32L48 224c-17.7 0-32-14.3-32-32L16 64c0-17.7 14.3-32 32-32s32 14.3 32 32l0 51.2L97.6 97.6c87.5-87.5 229.3-87.5 316.8 0s87.5 229.3 0 316.8s-229.3 87.5-316.8 0c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0c62.5 62.5 163.8 62.5 226.3 0s62.5-163.8 0-226.3s-163.8-62.5-226.3 0L125.7 160z"></path>
+    </svg>
+</button><button class="panzoom-max panzoom-button">
+    <svg class="panzoom-icon" viewBox="0 0 448 512" xmlns="http://www.w3.org/2000/svg">
+        <path d="M32 32C14.3 32 0 46.3 0 64l0 96c0 17.7 14.3 32 32 32s32-14.3 32-32l0-64 64 0c17.7 0 32-14.3 32-32s-14.3-32-32-32L32 32zM64 352c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 96c0 17.7 14.3 32 32 32l96 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-64 0 0-64zM320 32c-17.7 0-32 14.3-32 32s14.3 32 32 32l64 0 0 64c0 17.7 14.3 32 32 32s32-14.3 32-32l0-96c0-17.7-14.3-32-32-32l-96 0zM448 352c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 64-64 0c-17.7 0-32 14.3-32 32s14.3 32 32 32l96 0c17.7 0 32-14.3 32-32l0-96z"></path>
+    </svg>
+</button><button class="panzoom-min panzoom-button panzoom-hidden">
+    <svg class="panzoom-icon" viewBox="0 0 448 512" xmlns="http://www.w3.org/2000/svg">
+        <path d="M160 64c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 64-64 0c-17.7 0-32 14.3-32 32s14.3 32 32 32l96 0c17.7 0 32-14.3 32-32l0-96zM32 320c-17.7 0-32 14.3-32 32s14.3 32 32 32l64 0 0 64c0 17.7 14.3 32 32 32s32-14.3 32-32l0-96c0-17.7-14.3-32-32-32l-96 0zM352 64c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 96c0 17.7 14.3 32 32 32l96 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-64 0 0-64zM320 320c-17.7 0-32 14.3-32 32l0 96c0 17.7 14.3 32 32 32s32-14.3 32-32l0-64 64 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-96 0z"></path>
+    </svg>
+</button>
+    </nav>
+    <pre class="mermaid"><code>---
+config:
+  theme: redux
+  layout: dagre
+  look: neo
+---
+%%{init: {'themeVariables': { 'edgeLabelBackground': 'white'}}}%%
+flowchart LR
+ subgraph s1["giftwrap-count"]
+    direction TB
+        n2["GIFT-seq FASTQs"]
+        n3["WTA&lt;br&gt;Provided?"]
+        n4@{ label: "&lt;span style=\"padding-left:\"&gt;Use Called Cells&lt;br&gt;For Cell Barcode&lt;br&gt;Whitelist&lt;span style=\"padding-left:\"&gt;t&lt;/span&gt;&lt;/span&gt;" }
+        n5@{ label: "&lt;span style=\"padding-left:\"&gt;Use Default&lt;br&gt;Cell Barcode&lt;br&gt;Whitelist&lt;/span&gt;" }
+        n6["LHS&lt;br&gt;Sequences&lt;br&gt;Differ?"]
+        n28["Sort All Recorded Reads By:&lt;br&gt;Probe BC, Cell BC, Probe ID"]
+        s2["s2"]
+  end
+ subgraph s2["&lt;div style="width:54em; height:2em; display:flex; justify-content: flex-start; align-items:flex-end;"&gt;&lt;strong&gt;For each read&lt;/strong&gt;&lt;/div&gt;"]
+    direction TB
+        n7["Fuzzy Match LHS,&lt;br&gt;Prioritizing Longer&lt;br&gt;LHS Sequences"]
+        n8["Fuzzy Match LHS&lt;br&gt;Based on First N&lt;br&gt;Nucleotides in R2"]
+        n9["Match?"]
+        n10["Fuzzy Search Remaining&lt;br&gt;R2 for the Constant&lt;br&gt;Sequence"]
+        n11["Discard Read"]
+        n12["Present&lt;br&gt;Or Ignored?"]
+        n13["Discard Read"]
+        n14["Multiplexed?"]
+        n15["Fuzzy Match&lt;br&gt;Probe Barcode"]
+        n16["Expected&lt;br&gt;Barcode&lt;br&gt;Matched?"]
+        n17["Discard Read"]
+        n18["Fuzzy Search&lt;br&gt;for a Paired&lt;br&gt;RHS Sequence"]
+        n19["Expected RHS&lt;br&gt;Matched?"]
+        n20["Grab Sequence&lt;br&gt;Between LHS and&lt;br&gt;RHS as Gapfill"]
+        n21["Discard Read"]
+        n22["Split R1 Into&lt;br&gt;Expected UMI&lt;br&gt;and Cell Barcode&lt;br&gt;Sequences"]
+        n23["Fuzzy Search Cell&lt;br&gt;Barcode Against&lt;br&gt;Whitelist"]
+        n24["Matched&lt;br&gt;Cell Barcode?"]
+        n25["Record Mapped&lt;br&gt;Read"]
+        n26["Discard Read"]
+  end
+ subgraph s3["giftwrap-correct-umis"]
+    direction TB
+        s4["s4"]
+        n27["Group Reads By&lt;br&gt;Probe Barcode and&lt;br&gt;Cell Barcode"]
+        n29["Iterate Over Reads&lt;br&gt;Within Each Cell"]
+  end
+ subgraph s4["&lt;div style="width:52em; height:2em; display:flex; justify-content: flex-start; align-items:flex-end;"&gt;&lt;strong&gt;For each Probe BC/Cell BC pair&lt;/strong&gt;&lt;/div&gt;"]
+    direction TB
+        n35["Sort UMIs&lt;br&gt;By Number of&lt;br&gt;Reads Captured"]
+        n31["Observed&lt;br&gt;UMIs"]
+        n30["Test Raw&lt;br&gt;UMI Sequence"]
+        n40["Probe/UMI&lt;br&gt;Chimeras&lt;br&gt;Allowed?"]
+        n32["Accept UMI"]
+        n33["Collect PHRED&lt;br&gt;Quality Scores&lt;br&gt;for Each UMI Base"]
+        n36["Test Up to 1 Edit&lt;br&gt;Prioritized by Quality"]
+        n37["Matches Existing&lt;br&gt;Probe / UMI Pair?"]
+        n38["Accept Corrected UMI"]
+        n39["Accept Uncorrected&lt;br&gt;UMI As Newly&lt;br&gt;Observed"]
+        n41["Save All Collected&lt;br&gt;Probe/UMI Pairs"]
+        n42["Sort All Probes&lt;br&gt;Observed For&lt;br&gt;Each UMI"]
+        n43["Only 1 Probe&lt;br&gt;for a UMI?"]
+        n44["Sort the Probes&lt;br&gt;By Number of&lt;br&gt;Reads"]
+        n45["Save the&lt;br&gt;Probe/UMI Pair"]
+        n46["Discard Reads Not&lt;br&gt;Mapping to the Most&lt;br&gt;Commonly Observed&lt;br&gt;Probe/UMI Pair"]
+  end
+ subgraph s5["giftwrap-correct-gapfill"]
+    direction TB
+        s6["s6"]
+        n47["Group Reads by&lt;br&gt;Probe BC/Cell BC/UMI&lt;br&gt;Tuples"]
+  end
+ subgraph s6["&lt;div style="width:44em; height:2em; display:flex; justify-content: flex-start; align-items:flex-end;"&gt;&lt;strong&gt;For each Probe BC/Cell BC/Probe/UMI tuple&lt;/strong&gt;&lt;/div&gt;"]
+    direction TB
+        n48["More Than&lt;br&gt;One Read?"]
+        n51["Are All&lt;br&gt;Gapfills the&lt;br&gt;Same Length?"]
+        n50["Accept Collected&lt;br&gt;Gapfill Sequence"]
+        n52["Collect the&lt;br&gt;Frequency of&lt;br&gt;Nucleotides for&lt;br&gt;Each Position"]
+        n53["Count the Total&lt;br&gt;Number of Reads&lt;br&gt;Supporting Each&lt;br&gt;Gapfill Sequence&lt;br&gt;Length"]
+        n54["Retain Gapfill&lt;br&gt;Reads That Match&lt;br&gt;the Most Common&lt;br&gt;Gapfill Sequence&lt;br&gt;Length"]
+        n55["Only One&lt;br&gt;Remaining&lt;br&gt;Read?"]
+        n56["Accept Collected&lt;br&gt;Gapfill Sequence"]
+        n57["Select the&lt;br&gt;Most Frequent&lt;br&gt;Nucleotide Per&lt;br&gt;Position"]
+        n58["Accept the&lt;br&gt;Corrected&lt;br&gt;Gapfill Sequence"]
+        n59["Compute Estimated&lt;br&gt;Number of Reads&lt;br&gt;Supporting the&lt;br&gt;Corrected Gapfill"]
+  end
+ subgraph s7["giftwrap-collect"]
+        s8["s8"]
+        n60["Group Reads by&lt;br&gt;Probe BC"]
+  end
+ subgraph s8["&lt;div style="width:19em; height:-2em; display:flex; justify-content: flex-start; align-items:flex-end;"&gt;&lt;strong&gt;For each Probe BC&lt;/strong&gt;&lt;/div&gt;"]
+        n61["Collect All&lt;br&gt;Possible Observed&lt;br&gt;Probe/Gapfill Sequence&lt;br&gt;Combinations"]
+        n62["Collect All UMIs&lt;br&gt;Supporting Each&lt;br&gt;Cell BC/Probe/Gapfill&lt;br&gt;Combination"]
+        n63["Write to&lt;br&gt;GIFTwrap .h5&lt;br&gt;Counts File"]
+        n64["Output .h5 File"]
+  end
+ subgraph s9["giftwrap-summarize"]
+        n65["Compute Summary&lt;br&gt;Statistics"]
+        n66["Was Cellranger&lt;br&gt;WTA Data&lt;br&gt;Provided?"]
+        n67["Filter final .h5&lt;br&gt;File to Contain&lt;br&gt;Only Cell Barcodes&lt;br&gt;Observed in the&lt;br&gt;WTA Dataset"]
+        n68["Exit"]
+        n69["Compute Summary&lt;br&gt;Statistics to&lt;br&gt;Evaluate Genotyping&lt;br&gt;Efficicency"]
+  end
+    n2 --&gt; n3
+    n3 -- Yes --&gt; n4
+    n3 -- No --&gt; n5
+    n4 --&gt; n6
+    n5 --&gt; n6
+    n6 -- Yes --&gt; n7
+    n6 -- No --&gt; n8
+    n7 --&gt; n9
+    n9 -- Yes --&gt; n10
+    n9 -- No --&gt; n11
+    n8 --&gt; n9
+    n10 --&gt; n12
+    n12 -- No --&gt; n13
+    n12 -- Yes --&gt; n14
+    n14 -- Yes --&gt; n15
+    n15 --&gt; n16
+    n16 -- No --&gt; n17
+    n16 -- yes --&gt; n18
+    n14 -- No --&gt; n18
+    n18 --&gt; n19
+    n19 -- Yes --&gt; n20
+    n19 -- No --&gt; n21
+    n20 --&gt; n22
+    n22 --&gt; n23
+    n23 --&gt; n24
+    n24 -- Yes --&gt; n25
+    n24 -- No --&gt; n26
+    n25 --&gt; n28
+    n27 --&gt; n29
+    n29 --&gt; n35
+    n31 --&gt; n30 &amp; n40
+    n30 -- No UMIs&lt;br&gt;Observed Yet --&gt; n32
+    n30 -- UMI Has Not Been&lt;br&gt;Observed for&lt;br&gt;the Given Probe --&gt; n33
+    n30 -- Exact Match to&lt;br&gt;Observed UMI --&gt; n32
+    n35 --&gt; n30
+    n32 -- Save UMI --&gt; n31
+    n33 --&gt; n36
+    n36 --&gt; n37
+    n37 -- Yes --&gt; n38
+    n38 -- Save UMI --&gt; n31
+    n37 -- No --&gt; n39
+    n39 -- Save UMI --&gt; n31
+    n40 -- Yes --&gt; n41
+    n40 -- No --&gt; n42
+    n42 --&gt; n43
+    n43 -- No --&gt; n44
+    n43 -- Yes --&gt; n45
+    n44 --&gt; n46
+    n47 --&gt; n48
+    n48 -- Yes --&gt; n51
+    n48 -- No --&gt; n50
+    n51 -- Yes --&gt; n52
+    n51 -- No --&gt; n53
+    n53 --&gt; n54
+    n54 --&gt; n55
+    n55 -- Yes --&gt; n56
+    n55 -- No --&gt; n52
+    n52 --&gt; n57
+    n57 --&gt; n58
+    n58 --&gt; n59
+    n56 --&gt; n59
+    n50 --&gt; n59
+    n60 --&gt; n61
+    n61 --&gt; n62
+    n62 --&gt; n63
+    n63 --&gt; n64
+    n65 --&gt; n66
+    n66 -- Yes --&gt; n67
+    n66 -- No --&gt; n68
+    n67 --&gt; n69
+    s1 ==&gt; s3
+    s3 ==&gt; s5
+    s5 ==&gt; s7
+    s7 ==&gt; s9
+    n2@{ shape: docs, pos: "t"}
+    n3@{ shape: diam}
+    n4@{ shape: rect}
+    n5@{ shape: rect}
+    n6@{ shape: diam}
+    n9@{ shape: diam}
+    n12@{ shape: diam}
+    n14@{ shape: diam}
+    n16@{ shape: diam}
+    n19@{ shape: diam}
+    n24@{ shape: diam}
+    n31@{ shape: cyl}
+    n37@{ shape: diam}
+    n43@{ shape: diam}
+    n48@{ shape: diam}
+    n51@{ shape: diam}
+    n55@{ shape: diam}
+    n64@{ shape: doc, pos: "b"}
+    n66@{ shape: diam}
+    style s2 fill:#00C853
+    style s4 fill:#FFD600
+    style s6 fill:#2962FF
+    style s8 fill:#D50000
+    style s1 fill:#C8E6C9
+    style s3 fill:#FFF9C4
+    style s5 fill:#BBDEFB
+    style s7 fill:#FFCDD2
+    style s9 fill:#E1BEE7
+    style n2 fill:#f0f0f0
+    style n3 fill:#f0f0f0
+    style n4 fill:#f0f0f0
+    style n5 fill:#f0f0f0
+    style n6 fill:#f0f0f0
+    style n7 fill:#f0f0f0
+    style n8 fill:#f0f0f0
+    style n9 fill:#f0f0f0
+    style n10 fill:#f0f0f0
+    style n11 fill:#f0f0f0
+    style n12 fill:#f0f0f0
+    style n13 fill:#f0f0f0
+    style n14 fill:#f0f0f0
+    style n15 fill:#f0f0f0
+    style n16 fill:#f0f0f0
+    style n17 fill:#f0f0f0
+    style n18 fill:#f0f0f0
+    style n19 fill:#f0f0f0
+    style n20 fill:#f0f0f0
+    style n21 fill:#f0f0f0
+    style n22 fill:#f0f0f0
+    style n23 fill:#f0f0f0
+    style n24 fill:#f0f0f0
+    style n25 fill:#f0f0f0
+    style n26 fill:#f0f0f0
+    style n27 fill:#f0f0f0
+    style n28 fill:#f0f0f0
+    style n29 fill:#f0f0f0
+    style n30 fill:#f0f0f0
+    style n31 fill:#f0f0f0
+    style n32 fill:#f0f0f0
+    style n33 fill:#f0f0f0
+    style n35 fill:#f0f0f0
+    style n36 fill:#f0f0f0
+    style n37 fill:#f0f0f0
+    style n38 fill:#f0f0f0
+    style n39 fill:#f0f0f0
+    style n40 fill:#f0f0f0
+    style n41 fill:#f0f0f0
+    style n42 fill:#f0f0f0
+    style n43 fill:#f0f0f0
+    style n44 fill:#f0f0f0
+    style n45 fill:#f0f0f0
+    style n46 fill:#f0f0f0
+    style n47 fill:#f0f0f0
+    style n48 fill:#f0f0f0
+    style n50 fill:#f0f0f0
+    style n51 fill:#f0f0f0
+    style n52 fill:#f0f0f0
+    style n53 fill:#f0f0f0
+    style n54 fill:#f0f0f0
+    style n55 fill:#f0f0f0
+    style n56 fill:#f0f0f0
+    style n57 fill:#f0f0f0
+    style n58 fill:#f0f0f0
+    style n59 fill:#f0f0f0
+    style n60 fill:#f0f0f0
+    style n61 fill:#f0f0f0
+    style n62 fill:#f0f0f0
+    style n63 fill:#f0f0f0
+    style n64 fill:#f0f0f0
+    style n65 fill:#f0f0f0
+    style n66 fill:#f0f0f0
+    style n67 fill:#f0f0f0
+    style n68 fill:#f0f0f0
+    style n69 fill:#f0f0f0</code></pre> 
+    
+</div>
+
+
+
+
+
+
+
+  
+    
+  
+  
+    
+  
+
+
+  <aside class="md-source-file">
+    
+      
+  <span class="md-source-file__fact">
+    <span class="md-icon" title="Last update">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
+    </span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="February 20, 2026 19:37:00 UTC">February 20, 2026</span>
+  </span>
+
+    
+    
+      
+  <span class="md-source-file__fact">
+    <span class="md-icon" title="Created">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg>
+    </span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 23, 2025 04:08:06 UTC">June 23, 2025</span>
+  </span>
+
+    
+    
+    
+  </aside>
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../getting_started/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Getting Started">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Getting Started
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../analyzing_giftseq_data/" class="md-footer__link md-footer__link--next" aria-label="Next: Analyzing GIFT-seq Data with GIFTwrap">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Analyzing GIFT-seq Data with GIFTwrap
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2025 Lareau Lab – <a href="#__consent">Change cookie settings</a>
+
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/clareaulab/giftwrap" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path fill="currentColor" d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://bsky.app/profile/caleblareau.bsky.social" target="_blank" rel="noopener" title="bsky.app" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path fill="currentColor" d="M407.8 294.7c-3.3-.4-6.7-.8-10-1.3 3.4.4 6.7.9 10 1.3M288 227.1c-26.1-50.7-97.1-145.2-163.1-191.8C61.6-9.4 37.5-1.7 21.6 5.5 3.3 13.8 0 41.9 0 58.4S9.1 194 15 213.9c19.5 65.7 89.1 87.9 153.2 80.7 3.3-.5 6.6-.9 10-1.4-3.3.5-6.6 1-10 1.4-93.9 14-177.3 48.2-67.9 169.9C220.6 589.1 265.1 437.8 288 361.1c22.9 76.7 49.2 222.5 185.6 103.4 102.4-103.4 28.1-156-65.8-169.9-3.3-.4-6.7-.8-10-1.3 3.4.4 6.7.9 10 1.3 64.1 7.1 133.6-15.1 153.2-80.7C566.9 194 576 75 576 58.4s-3.3-44.7-21.6-52.9c-15.8-7.1-40-14.9-103.2 29.8C385.1 81.9 314.1 176.4 288 227.1"/></svg>
+    </a>
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://x.com/CalebLareau" target="_blank" rel="noopener" title="x.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path fill="currentColor" d="M357.2 48h70.6L273.6 224.2 455 464H313L201.7 318.6 74.5 464H3.8l164.9-188.5L-5.2 48h145.6l100.5 132.9zm-24.8 373.8h39.1L119.1 88h-42z"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+      <div class="md-consent" data-md-component="consent" id="__consent" hidden>
+        <div class="md-consent__overlay"></div>
+        <aside class="md-consent__inner">
+          <form class="md-consent__form md-grid md-typeset" name="consent">
+            
+
+
+  
+
+
+<h4>Cookie Consent</h4>
+<p>This site uses cookies to enhance your experience. By continuing to visit this site, you agree to our use of cookies.</p>
+<input class="md-toggle" type="checkbox" id="__settings" >
+<div class="md-consent__settings">
+  <ul class="task-list">
+    
+    
+      
+    
+    
+      
+        
+  
+  
+    
+    
+  
+  <li class="task-list-item">
+    <label class="task-list-control">
+      <input type="checkbox" name="github" checked>
+      <span class="task-list-indicator"></span>
+      GitHub
+    </label>
+  </li>
+
+      
+    
+    
+  </ul>
+</div>
+<div class="md-consent__controls">
+  
+    
+      <button class="md-button md-button--primary">Accept</button>
+    
+    
+    
+  
+    
+    
+    
+      <label class="md-button" for="__settings">Manage settings</label>
+    
+  
+</div>
+          </form>
+        </aside>
+      </div>
+      <script>var consent=__md_get("__consent");if(consent)for(var input of document.forms.consent.elements)input.name&&(input.checked=consent[input.name]||!1);else"file:"!==location.protocol&&setTimeout((function(){document.querySelector("[data-md-component=consent]").hidden=!1}),250);var form=document.forms.consent;for(var action of["submit","reset"])form.addEventListener(action,(function(e){if(e.preventDefault(),"reset"===e.type)for(var n of document.forms.consent.elements)n.name&&(n.checked=!1);__md_set("__consent",Object.fromEntries(Array.from(new FormData(form).keys()).map((function(e){return[e,!0]})))),location.hash="",location.reload()}))</script>
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "toc.follow", "toc.integrate", "search.suggest", "search.highlight", "social", "navigation.footer", "content.code.copy"], "search": "../../assets/javascripts/workers/search.973d3a69.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.92b07e13.min.js"></script>
+      
+        <script src="../../assets/_markdown_exec_pyodide.js"></script>
+      
+        <script src="../../assets/mathjax.js"></script>
+      
+        <script src="../../assets/external/unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+        <script src="../../assets/external/unpkg.com/mermaid@11.7.0/dist/mermaid.min.js"></script>
+      
+        <script src="../../js/open_in_new_tab.js"></script>
+      
+        <script src="../../termynal.js"></script>
+      
+        <script src="../../assets/javascripts/panzoom.min.js"></script>
+      
+        <script src="../../assets/javascripts/zoompan.js"></script>
+      
+    
+  </body>
+</html>
